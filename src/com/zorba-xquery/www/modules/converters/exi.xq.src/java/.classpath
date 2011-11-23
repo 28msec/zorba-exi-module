@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="E:/xquery_development/EXI/Exificient 0.8/lib/exificient.jar"/>
+	<classpathentry kind="lib" path="E:/xquery_development/EXI/Exificient 0.8/lib/xercesImpl.jar"/>
+	<classpathentry kind="lib" path="E:/xquery_development/EXI/Exificient 0.8/lib/xml-apis.jar"/>
+	<classpathentry kind="output" path=""/>
+</classpath>
