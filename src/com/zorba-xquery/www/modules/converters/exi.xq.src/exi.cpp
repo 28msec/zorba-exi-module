@@ -225,6 +225,14 @@ static jobject build_java_qname_from_elem(JNIEnv* env, Item elem)
   CHECK_EXCEPTION(env);
   jobject jqname = env->NewObject(jqname_class, jqname_constructor, elem_ns, elem_local, elem_prefix);
   CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(elem_ns);
+  CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(elem_local);
+  CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(elem_prefix);
+  CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(jqname_class);
+  CHECK_EXCEPTION(env);
 
   return jqname;
 }
@@ -252,10 +260,14 @@ static void add_self_contained(JNIEnv* env,
     jobject jqname = build_java_qname_from_elem(env, root_elems.at(i));
     env->SetObjectArrayElement(jqname_array2, i, jqname);
     CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(jqname);
+    CHECK_EXCEPTION(env);
   }
   env->SetObjectField(exificient_options, fid, jqname_array2);
   CHECK_EXCEPTION(env);
   env->DeleteLocalRef(jqname_array2);
+  CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(jqname_class);
   CHECK_EXCEPTION(env);
 
 }
@@ -288,7 +300,11 @@ static void add_datatyperepresentationmap(JNIEnv* env,
     jobject jqname_representation = build_java_qname_from_elem(env, representations.at(i));
     env->SetObjectArrayElement(jdatatypes_array, i, jqname_datatype);
     CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(jqname_datatype);
+    CHECK_EXCEPTION(env);
     env->SetObjectArrayElement(jrepresentations_array, i, jqname_representation);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(jqname_representation);
     CHECK_EXCEPTION(env);
   }
   env->SetObjectField(exificient_options, datatypes_fid, jdatatypes_array);
@@ -298,6 +314,8 @@ static void add_datatyperepresentationmap(JNIEnv* env,
   env->DeleteLocalRef(jdatatypes_array);
   CHECK_EXCEPTION(env);
   env->DeleteLocalRef(jrepresentations_array);
+  CHECK_EXCEPTION(env);
+  env->DeleteLocalRef(jqname_class);
   CHECK_EXCEPTION(env);
 }
 
@@ -510,6 +528,8 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         jschema_loc = env->NewStringUTF(schema_loc.c_str());
         env->SetObjectField(exificient_options, fid, jschema_loc);
         CHECK_EXCEPTION(env);
+        env->DeleteLocalRef(jschema_loc);
+        CHECK_EXCEPTION(env);
       }
     }
     if(getChildElement(header_child, "strict", NULL))
@@ -570,6 +590,9 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
     CHECK_EXCEPTION(env);
   }
 
+  env->DeleteLocalRef(exificient_options_class);
+  CHECK_EXCEPTION(env);
+
   return exificient_options;
 }
 
@@ -587,8 +610,14 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
 
-    jclass  exificient_stub_class = JavaVMSingleton::getInstance()->getExificientClass();
-    jmethodID decode_method_id = JavaVMSingleton::getInstance()->getDecodeMethodId();
+    jclass  exificient_stub_class;
+    jmethodID decode_method_id;
+    exificient_stub_class = env->FindClass("com/zorbaxquery/exi/exificient_stub");
+    CHECK_EXCEPTION(env);
+    decode_method_id= env->GetStaticMethodID(exificient_stub_class, 
+                                                "decodeSchemaInformed", 
+                                                "([BLcom/zorbaxquery/exi/exificient_options;)Ljava/lang/String;");
+    CHECK_EXCEPTION(env);
     zorba::String exibase64 = exi_input.getStringValue();
     //zorba::String exibinstr = zorba::encoding::Base64::decode(exibase64);
     //const jbyte *exibin = (const jbyte*)exibinstr.data();
@@ -604,11 +633,20 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     jobject options = parse_options(false, args);
     jstring decoded_exi = (jstring)env->CallStaticObjectMethod(exificient_stub_class, decode_method_id, exiarray, options);
     CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(exiarray);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(options);
+    CHECK_EXCEPTION(env);
 
     const char *existr = env->GetStringUTFChars(decoded_exi, NULL);
     CHECK_EXCEPTION(env);
     String  result_string(existr);
     env->ReleaseStringUTFChars(decoded_exi, existr);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(decoded_exi);
+    CHECK_EXCEPTION(env);
+
+    env->DeleteLocalRef(exificient_stub_class);
     CHECK_EXCEPTION(env);
 
     StaticContext_t   sctx = Zorba::getInstance(0)->createStaticContext();
@@ -658,6 +696,18 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     env->ExceptionClear();
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "JAVA-EXCEPTION");
+    env->DeleteLocalRef(errorMessage);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(printWriter);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(stringWriter);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(throwableClass);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(printWriterClass);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(stringWriterClass);
+    CHECK_EXCEPTION(env);
     throw USER_EXCEPTION(lQName, err);
   }
   return ItemSequence_t(new EmptySequence());
@@ -676,8 +726,14 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
   JNIEnv* env;
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
-    jclass  exificient_stub_class = JavaVMSingleton::getInstance()->getExificientClass();
-    jmethodID encode_method_id = JavaVMSingleton::getInstance()->getEncodeMethodId();
+    jclass  exificient_stub_class;
+    jmethodID encode_method_id;
+    exificient_stub_class = env->FindClass("com/zorbaxquery/exi/exificient_stub");
+    CHECK_EXCEPTION(env);
+    encode_method_id= env->GetStaticMethodID(exificient_stub_class, 
+                                            "encodeSchemaInformed", 
+                                            "(Ljava/lang/String;Lcom/zorbaxquery/exi/exificient_options;)[B");
+    CHECK_EXCEPTION(env);
 
     Zorba_SerializerOptions lOptions;
     lOptions.ser_method = ZORBA_SERIALIZATION_METHOD_XML;
@@ -691,10 +747,18 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     jobject options = parse_options(true, args);
     jbyteArray encoded_exi = (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class, encode_method_id, xml_string, options);
     CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(xml_string);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(options);
+    CHECK_EXCEPTION(env);
     jbyte*  exi_bytes = env->GetByteArrayElements(encoded_exi, NULL);
     CHECK_EXCEPTION(env);
     zorba::Item result = theFactory->createBase64Binary((const unsigned char*)exi_bytes, env->GetArrayLength(encoded_exi));
     env->ReleaseByteArrayElements(encoded_exi, exi_bytes, 0);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(encoded_exi);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(exificient_stub_class);
     CHECK_EXCEPTION(env);
     return ItemSequence_t(new SingletonItemSequence(result));
 
@@ -726,6 +790,18 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     env->ExceptionClear();
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "JAVA-EXCEPTION");
+    env->DeleteLocalRef(errorMessage);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(printWriter);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(stringWriter);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(throwableClass);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(printWriterClass);
+    CHECK_EXCEPTION(env);
+    env->DeleteLocalRef(stringWriterClass);
+    CHECK_EXCEPTION(env);
     throw USER_EXCEPTION(lQName, err);
   }
   return ItemSequence_t(new EmptySequence());

@@ -41,19 +41,24 @@ typedef jint (JNICALL  *JNI_CreateJavaVM_func)(JavaVM **pvm, void **penv, void *
 JavaVMSingleton::JavaVMSingleton(const char* classPath)
 {
   JavaVMInitArgs args;
-  JavaVMOption options[1];
+  JavaVMOption options[4];
   jint r;
-  jint nOptions = 1;
 
   std::string classpathOption = "-Djava.class.path=";
   classpathOption += classPath;
   options[0].optionString = (char*)classpathOption.c_str();
   options[0].extraInfo = NULL;
+  options[1].optionString = "-Xmx700m";
+  options[1].extraInfo = NULL;
+  options[2].optionString = "-XX:MaxPermSize=128m";
+  options[2].extraInfo = NULL;
+  //options[3].optionString = "-Xlp16m";
+  //options[3].extraInfo = NULL;
   memset(&args, 0, sizeof(args));
   args.version  = JNI_VERSION_1_6;
-  args.nOptions = nOptions;
+  args.nOptions = 3;
   args.options  = options;
-  args.ignoreUnrecognized = JNI_TRUE;
+  args.ignoreUnrecognized = JNI_FALSE;
 
 #ifdef WIN32
   HMODULE hVM = LoadLibrary(_T("jvm.dll"));
@@ -74,17 +79,6 @@ JavaVMSingleton::JavaVMSingleton(const char* classPath)
     throw VMOpenException();
   }
 
-  jthrowable lException = 0;
-  exificient_stub_class = m_env->FindClass("com/zorbaxquery/exi/exificient_stub");
-  CHECK_EXCEPTION(m_env);
-  decode_method_id= m_env->GetStaticMethodID(exificient_stub_class, 
-                                                    "decodeSchemaInformed", 
-                                                    "([BLcom/zorbaxquery/exi/exificient_options;)Ljava/lang/String;");
-  CHECK_EXCEPTION(m_env);
-  encode_method_id= m_env->GetStaticMethodID(exificient_stub_class, 
-                                                    "encodeSchemaInformed", 
-                                                    "(Ljava/lang/String;Lcom/zorbaxquery/exi/exificient_options;)[B");
-  CHECK_EXCEPTION(m_env);
 }
 
 JavaVMSingleton::~JavaVMSingleton()

@@ -30,9 +30,6 @@ namespace zorba { namespace exi {
     virtual ~JavaVMSingleton();
     JavaVM* getVM();
     JNIEnv* getEnv();
-    jclass getExificientClass() {return exificient_stub_class;}
-    jmethodID getDecodeMethodId() {return decode_method_id;}
-    jmethodID getEncodeMethodId() {return encode_method_id;}
   protected:
     JavaVMSingleton(const char* classPath);
     static JavaVMSingleton* instance;
@@ -41,9 +38,6 @@ namespace zorba { namespace exi {
 
     JavaVM* m_vm;
     JNIEnv* m_env;
-    jclass  exificient_stub_class;
-    jmethodID decode_method_id;
-    jmethodID encode_method_id;
   };
 
   class JavaException {
