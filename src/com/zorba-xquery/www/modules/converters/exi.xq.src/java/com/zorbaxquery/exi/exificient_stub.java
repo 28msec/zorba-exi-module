@@ -37,6 +37,8 @@ public final class exificient_stub {
 
 	private static void set_options(EXIFactory exiFactory, exificient_options options) throws UnsupportedOption
 	{
+		if(options == null)
+			return;
 		EncodingOptions	encoding_options = EncodingOptions.createDefault();
 		if(options.include_cookie)
 			encoding_options.setOption(EncodingOptions.INCLUDE_COOKIE);
@@ -97,7 +99,7 @@ public final class exificient_stub {
 		set_options(exiFactory, options);
 		EXIResult exiResult;
 		// create default factory and EXI grammar for schema
-		if(options.schema_location != null && !options.schema_location.isEmpty()){
+		if(options != null && options.schema_location != null && !options.schema_location.isEmpty()){
 			GrammarFactory grammarFactory = GrammarFactory.newInstance();
 			Grammar g = grammarFactory.createGrammar(options.schema_location);
 			exiFactory.setGrammar(g);
@@ -122,7 +124,7 @@ public final class exificient_stub {
 		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
 		set_options(exiFactory, options);
 		EXISource saxSource;
-		if(options.schema_location != null && !options.schema_location.isEmpty()){
+		if(options != null && options.schema_location != null && !options.schema_location.isEmpty()){
 			// create default factory and EXI grammar for schema
 			GrammarFactory grammarFactory = GrammarFactory.newInstance();
 			Grammar g = grammarFactory.createGrammar(options.schema_location);

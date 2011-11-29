@@ -25,7 +25,7 @@
 
     <xsd:complexType name="optionsType">
       <xsd:sequence>
-        <xsd:element ref="exi:header"/>
+        <xsd:element ref="exi:header" minOccurs="0"/>
         <xsd:element name="cookie" minOccurs="0">
           <xsd:complexType/>
         </xsd:element>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- first comment-->
+<elem1>
+  <nr:elem2 xmlns:nr="urn:schemas-microsoft-com:rowset">
+    text2<nr:a/>
+    <nr:elem3 attr3="value3">
+      <a attr1="value1"></a>
+    </nr:elem3>
+    <?php?>
+  </nr:elem2>
+  <![CDATA[long text]]>
+  <!-- second comment-->
+</elem1>
+<!-- last comment-->

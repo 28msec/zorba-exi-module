@@ -1,19 +1,29 @@
 import schema namespace exi-options="http://www.zorba-xquery.com/modules/converters/exi-options";
 import module namespace exi = "http://www.zorba-xquery.com/modules/converters/exi";
 import module namespace file="http://expath.org/ns/file";
+import module namespace doc="http://www.zorba-xquery.com/modules/store/dynamic/documents";
 
 declare namespace exi-header = "http://www.w3.org/2009/exi";
 declare namespace ann = "http://www.zorba-xquery.com/annotations";
 declare namespace err="http://www.w3.org/2005/xqt-errors";
 
+declare %ann:assignable variable $last-xml := "";
+
 declare function local:get-schema-file-for-exi($exiname as xs:string) as xs:string
 {
-  fn:replace($exiname, "\d*\.[^\.]*\.[^\.]*$", ".xsd")
+  file:path-to-native(fn:replace($exiname, "\d*\.[^\.]*\.[^\.]*$", ".xsd"))
 };
 
-declare function local:get-xml-for-exi($exiname as xs:string) as xs:string
+declare %ann:sequential function local:get-xml-for-exi($exiname as xs:string) as xs:string
 {
-  fn:trace(fn:replace($exiname, "(\.[^_]*)_[^\.]*\.exi$", "$1"), "xml name")
+  variable $new-xml := fn:trace(fn:replace($exiname, "(\.[^_]*)_[^\.]*\.exi$", "$1"), "xml name");
+  if(fn:not($last-xml eq "") and fn:not($last-xml eq $new-xml)) then
+  {
+    doc:remove(fn:resolve-uri($last-xml));
+    $last-xml := $new-xml;
+  }
+  else ();
+  $new-xml
 };
 
 declare function local:get-options-from-filename($exiname as xs:string) as element(exi-options:options)
@@ -23,7 +33,7 @@ declare function local:get-options-from-filename($exiname as xs:string) as eleme
       <exi-header:lesscommon>
         <exi-header:uncommon>
         {
-          if(fn:matches($exiname, "_BYTEALIGNED")) then
+          if(fn:matches($exiname, "_BYTEALIGN")) then
             <exi-header:alignment><exi-header:byte/></exi-header:alignment>
           else
             if(fn:matches($exiname, "_PRECOMPRESSION")) then
@@ -92,9 +102,11 @@ declare %ann:sequential function local:compare-xml( $elem1 as node(), $elem2 as 
     ();
 
   let $childs2 := $elem2/*
+  let $childs2_count := fn:count($childs2)
   for $child1 at $i in $elem1/*
   return
-    if(fn:not(local:compare-xml($child1, $childs2[$i]))) then 
+    if(($childs2_count lt $i) or 
+      fn:not(local:compare-xml($child1, $childs2[$i]))) then 
       exit returning fn:false();
     else ();
 
@@ -126,11 +138,10 @@ declare function local:display-file-name($fname as xs:string?) as xs:string?
   Check encoding and decoding for this exi file.
   Return the result <check-exi file="file name" encoding="ok/fail" decoding="ok/fail"/>
 :)
-declare %ann:nondeterministic function local:check-exi($exiname as xs:string) as element()
+declare %ann:sequential function local:check-exi($exiname as xs:string) as element()
 {
   let $options := local:get-options-from-filename($exiname)
   let $xmlname := local:get-xml-for-exi($exiname)
-  let $xml := fn:doc($xmlname)
   let $exi := file:read-binary($exiname)
   return
     <check-exi>
@@ -139,6 +150,7 @@ declare %ann:nondeterministic function local:check-exi($exiname as xs:string) as
      <schema>{local:display-file-name(fn:string($options/exi-header:header/exi-header:common/exi-header:schemaId))}</schema>
      <encoding>{
        try{
+         let $xml := fn:doc($xmlname)
          let $encoded_xml := exi:serialize($xml, $options)
          return
          fn:trace(if(local:compare-exi-without-version($exi, $encoded_xml)) then "ok" else "fail", "encoding")
@@ -153,9 +165,10 @@ declare %ann:nondeterministic function local:check-exi($exiname as xs:string) as
      }</encoding>
      <decoding>{
        try{
+         let $xml := fn:doc($xmlname)
          let $decoded_exi := exi:parse($exi, $options)
          return
-         fn:trace(if(local:compare-xml($decoded_exi, $xml)) then "ok" else "fail", "decoding")
+         fn:trace(if(local:compare-xml($decoded_exi[1], $xml)) then "ok" else "fail", "decoding")
         }catch *
         {
           (<err-code>{$err:code}</err-code>,
@@ -168,13 +181,7 @@ declare %ann:nondeterministic function local:check-exi($exiname as xs:string) as
     </check-exi>
 };
 
-    (:
-    <orig-exi>{fn:string($exi)}</orig-exi>
-    <encoded-exi>{fn:string($encoded_xml)}</encoded-exi>
-    <orig-xml>{$xml}</orig-xml>
-    <decoded-xml>{$decoded_exi}</decoded-xml>
-    <encoded-decoded-xml>{exi:parse(exi:serialize($xml, $options), $options)}</encoded-decoded-xml>
-    :)
+
 
 
 let $current-dir := fn:resolve-uri("./")
@@ -184,12 +191,26 @@ return
 
 
 (:
-local:check-exi("E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\DAML\cyc.xml_NOSCHEMA_BYTEALIGN.exi")
+local:check-exi("E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\notebook\notebook.xml_DEFAULT_HEADER.exi")
 :)
+
 (:
-let $exiname := "E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\DataStore\weblog.xml_DEFAULT_BYTEALIGNED.exi"
+let $exiname := "E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries/converters/exi/movesinstitute.org/notebook\notebook.xml_STRICT_COMPRESSED.exi"
 let $options := local:get-options-from-filename($exiname)
 let $exi := file:read-binary($exiname)
 let $decoded_exi := exi:parse($exi, $options)
 return $decoded_exi
+:)
+
+(:
+let $exiname := "E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries/converters/exi/movesinstitute.org/notebook\notebook.xml_DEFAULT_HEADER.exi"
+let $options := local:get-options-from-filename($exiname)
+let $xmlname := local:get-xml-for-exi($exiname)
+let $exi := file:read-binary($exiname)
+let $xml := fn:doc($xmlname)
+let $encoded_xml := exi:serialize($xml, $options)
+return (fn:trace($exi, "orig exi"), 
+        fn:trace(xs:hexBinary($exi), "orig exi hex"),
+       fn:trace($encoded_xml, "encoded xml"),
+       fn:trace(xs:hexBinary($encoded_xml), "encoded xml hex"))
 :)

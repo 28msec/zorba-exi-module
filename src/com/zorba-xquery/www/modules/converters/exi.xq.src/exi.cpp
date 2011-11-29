@@ -106,6 +106,56 @@ void Base64_decode(const char* aSource, size_t in_len, unsigned char** aResult, 
   }
 }
 
+class jclass_sptr
+{
+  JNIEnv* env;
+public:
+  jclass  ptr;
+public:
+  jclass_sptr(JNIEnv* _env, jclass jc) {env = _env; ptr=jc;}
+  ~jclass_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
+};
+
+class jobject_sptr
+{
+  JNIEnv* env;
+public:
+  jobject  ptr;
+public:
+  jobject_sptr(JNIEnv* _env, jobject jo) {env = _env; ptr=jo;}
+  ~jobject_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
+};
+
+class jstring_sptr
+{
+  JNIEnv* env;
+public:
+  jstring  ptr;
+public:
+  jstring_sptr(JNIEnv* _env, jstring js) {env = _env; ptr=js;}
+  ~jstring_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
+};
+
+class jobjectArray_sptr
+{
+  JNIEnv* env;
+public:
+  jobjectArray  ptr;
+public:
+  jobjectArray_sptr(JNIEnv* _env, jobjectArray joa) {env = _env; ptr=joa;}
+  ~jobjectArray_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
+};
+
+class jbyteArray_sptr
+{
+  JNIEnv* env;
+public:
+  jbyteArray  ptr;
+public:
+  jbyteArray_sptr(JNIEnv* _env, jbyteArray jba) {env = _env; ptr=jba;}
+  ~jbyteArray_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
+};
+
 class EXISerializeFunction : public NonContextualExternalFunction {
   private:
     const ExternalModule* theModule;
@@ -212,26 +262,18 @@ static jobject build_java_qname_from_elem(JNIEnv* env, Item elem)
   jthrowable lException = 0;
   Item elem_name;
   elem.getNodeName(elem_name);
-  jstring  elem_ns = env->NewStringUTF(elem_name.getNamespace().c_str());
+  jstring_sptr  elem_ns(env, env->NewStringUTF(elem_name.getNamespace().c_str()));
   CHECK_EXCEPTION(env);
-  jstring  elem_prefix = env->NewStringUTF(elem_name.getPrefix().c_str());
+  jstring_sptr  elem_prefix(env, env->NewStringUTF(elem_name.getPrefix().c_str()));
   CHECK_EXCEPTION(env);
-  jstring  elem_local = env->NewStringUTF(elem_name.getLocalName().c_str());
+  jstring_sptr  elem_local(env, env->NewStringUTF(elem_name.getLocalName().c_str()));
   CHECK_EXCEPTION(env);
 
-  jclass  jqname_class = env->FindClass("javax/xml/namespace/QName");
+  jclass_sptr  jqname_class(env, env->FindClass("javax/xml/namespace/QName"));
   CHECK_EXCEPTION(env);
-  jmethodID jqname_constructor = env->GetMethodID(jqname_class, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+  jmethodID jqname_constructor = env->GetMethodID(jqname_class.ptr, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
   CHECK_EXCEPTION(env);
-  jobject jqname = env->NewObject(jqname_class, jqname_constructor, elem_ns, elem_local, elem_prefix);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(elem_ns);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(elem_local);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(elem_prefix);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jqname_class);
+  jobject jqname = env->NewObject(jqname_class.ptr, jqname_constructor, elem_ns.ptr, elem_local.ptr, elem_prefix.ptr);
   CHECK_EXCEPTION(env);
 
   return jqname;
@@ -246,30 +288,23 @@ static void add_self_contained(JNIEnv* env,
     return;
   jthrowable lException = 0;
 
-  jclass  jqname_class = env->FindClass("Ljavax/xml/namespace/QName");
+  jclass_sptr  jqname_class(env, env->FindClass("Ljavax/xml/namespace/QName"));
   CHECK_EXCEPTION(env);
 
   jfieldID fid;
   fid = env->GetFieldID(exificient_options_class, "selfContained", "[Ljavax/xml/namespace/QName;");
   CHECK_EXCEPTION(env);
 
-  jobjectArray jqname_array2 = env->NewObjectArray(root_elems.size(), jqname_class, NULL);
+  jobjectArray_sptr jqname_array2(env, env->NewObjectArray(root_elems.size(), jqname_class.ptr, NULL));
   CHECK_EXCEPTION(env);
   for(jsize i=0;i<(jsize)root_elems.size();i++)
   {
-    jobject jqname = build_java_qname_from_elem(env, root_elems.at(i));
-    env->SetObjectArrayElement(jqname_array2, i, jqname);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(jqname);
+    jobject_sptr jqname(env, build_java_qname_from_elem(env, root_elems.at(i)));
+    env->SetObjectArrayElement(jqname_array2.ptr, i, jqname.ptr);
     CHECK_EXCEPTION(env);
   }
-  env->SetObjectField(exificient_options, fid, jqname_array2);
+  env->SetObjectField(exificient_options, fid, jqname_array2.ptr);
   CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jqname_array2);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jqname_class);
-  CHECK_EXCEPTION(env);
-
 }
 
 static void add_datatyperepresentationmap(JNIEnv* env, 
@@ -281,7 +316,7 @@ static void add_datatyperepresentationmap(JNIEnv* env,
   if(!datatypes.size())
     return;
   jthrowable lException = 0;
-  jclass  jqname_class = env->FindClass("javax/xml/namespace/QName");
+  jclass_sptr  jqname_class(env, env->FindClass("javax/xml/namespace/QName"));
   CHECK_EXCEPTION(env);
 
   jfieldID datatypes_fid;
@@ -291,31 +326,22 @@ static void add_datatyperepresentationmap(JNIEnv* env,
   representations_fid = env->GetFieldID(exificient_options_class, "dtrMapRepresentations", "[Ljavax/xml/namespace/QName;");
   CHECK_EXCEPTION(env);
 
-  jobjectArray jdatatypes_array = env->NewObjectArray(datatypes.size(), jqname_class, NULL);
-  jobjectArray jrepresentations_array = env->NewObjectArray(datatypes.size(), jqname_class, NULL);
+  jobjectArray_sptr jdatatypes_array(env, env->NewObjectArray(datatypes.size(), jqname_class.ptr, NULL));
+  CHECK_EXCEPTION(env);
+  jobjectArray_sptr jrepresentations_array(env, env->NewObjectArray(datatypes.size(), jqname_class.ptr, NULL));
   CHECK_EXCEPTION(env);
   for(jsize i=0;i<(jsize)datatypes.size();i++)
   {
-    jobject jqname_datatype = build_java_qname_from_elem(env, datatypes.at(i));
-    jobject jqname_representation = build_java_qname_from_elem(env, representations.at(i));
-    env->SetObjectArrayElement(jdatatypes_array, i, jqname_datatype);
+    jobject_sptr jqname_datatype(env, build_java_qname_from_elem(env, datatypes.at(i)));
+    jobject_sptr jqname_representation(env, build_java_qname_from_elem(env, representations.at(i)));
+    env->SetObjectArrayElement(jdatatypes_array.ptr, i, jqname_datatype.ptr);
     CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(jqname_datatype);
-    CHECK_EXCEPTION(env);
-    env->SetObjectArrayElement(jrepresentations_array, i, jqname_representation);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(jqname_representation);
+    env->SetObjectArrayElement(jrepresentations_array.ptr, i, jqname_representation.ptr);
     CHECK_EXCEPTION(env);
   }
-  env->SetObjectField(exificient_options, datatypes_fid, jdatatypes_array);
+  env->SetObjectField(exificient_options, datatypes_fid, jdatatypes_array.ptr);
   CHECK_EXCEPTION(env);
-  env->SetObjectField(exificient_options, datatypes_fid, jrepresentations_array);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jdatatypes_array);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jrepresentations_array);
-  CHECK_EXCEPTION(env);
-  env->DeleteLocalRef(jqname_class);
+  env->SetObjectField(exificient_options, datatypes_fid, jrepresentations_array.ptr);
   CHECK_EXCEPTION(env);
 }
 
@@ -336,10 +362,10 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   }
 
   JNIEnv* env = JavaVMSingleton::getInstance()->getEnv();
-  jclass exificient_options_class = env->FindClass("com/zorbaxquery/exi/exificient_options");
+  jclass_sptr exificient_options_class(env, env->FindClass("com/zorbaxquery/exi/exificient_options"));
   CHECK_EXCEPTION(env);
-  jobject exificient_options = env->NewObject(exificient_options_class,
-                                    env->GetMethodID(exificient_options_class, "<init>", "()V"));
+  jobject exificient_options = env->NewObject(exificient_options_class.ptr,
+                                    env->GetMethodID(exificient_options_class.ptr, "<init>", "()V"));
   CHECK_EXCEPTION(env);
 
   Item header_child;
@@ -355,7 +381,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(uncommon_child, "alignment", &alignment_child))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "coding", "I");
+          fid = env->GetFieldID(exificient_options_class.ptr, "coding", "I");
           CHECK_EXCEPTION(env);
           if(getChildElement(alignment_child, "byte", NULL))
           {
@@ -400,13 +426,13 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
             }
           }
           lIterInput->close();
-          add_self_contained(env, exificient_options_class, exificient_options, root_elems);
+          add_self_contained(env, exificient_options_class.ptr, exificient_options, root_elems);
         }
         Item valueMaxLength_child;
         if(getChildElement(uncommon_child, "valueMaxLength", &valueMaxLength_child))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "valueMaxLength", "I");
+          fid = env->GetFieldID(exificient_options_class.ptr, "valueMaxLength", "I");
           CHECK_EXCEPTION(env);
           unsigned int max_len = valueMaxLength_child.getUnsignedIntValue();
           env->SetIntField(exificient_options, fid, (jint)max_len);
@@ -416,7 +442,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(uncommon_child, "valuePartitionCapacity", &valuePartitionCapacity_child))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "valuePartitionCapacity", "I");
+          fid = env->GetFieldID(exificient_options_class.ptr, "valuePartitionCapacity", "I");
           CHECK_EXCEPTION(env);
           unsigned int cap = valuePartitionCapacity_child.getUnsignedIntValue();
           env->SetIntField(exificient_options, fid, (jint)cap);
@@ -441,7 +467,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
           dttrm_iter->close();
         }
         uncommon_iter->close();
-        add_datatyperepresentationmap(env, exificient_options_class, exificient_options, datatypes, representations);
+        add_datatyperepresentationmap(env, exificient_options_class.ptr, exificient_options, datatypes, representations);
       }
       Item preserve_child;
       if(getChildElement(lesscommon_child, "preserve", &preserve_child))
@@ -449,7 +475,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(preserve_child, "dtd", NULL))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "preserve_dtds", "Z");
+          fid = env->GetFieldID(exificient_options_class.ptr, "preserve_dtds", "Z");
           CHECK_EXCEPTION(env);
           env->SetBooleanField(exificient_options, fid, JNI_TRUE);
           CHECK_EXCEPTION(env);
@@ -457,7 +483,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(preserve_child, "prefixes", NULL))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "preserve_prefixes", "Z");
+          fid = env->GetFieldID(exificient_options_class.ptr, "preserve_prefixes", "Z");
           CHECK_EXCEPTION(env);
           env->SetBooleanField(exificient_options, fid, JNI_TRUE);
           CHECK_EXCEPTION(env);
@@ -465,7 +491,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(preserve_child, "lexicalValues", NULL))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "preserve_lexical_values", "Z");
+          fid = env->GetFieldID(exificient_options_class.ptr, "preserve_lexical_values", "Z");
           CHECK_EXCEPTION(env);
           env->SetBooleanField(exificient_options, fid, JNI_TRUE);
           CHECK_EXCEPTION(env);
@@ -473,7 +499,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(preserve_child, "comments", NULL))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "preserve_comments", "Z");
+          fid = env->GetFieldID(exificient_options_class.ptr, "preserve_comments", "Z");
           CHECK_EXCEPTION(env);
           env->SetBooleanField(exificient_options, fid, JNI_TRUE);
           CHECK_EXCEPTION(env);
@@ -481,7 +507,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         if(getChildElement(preserve_child, "pis", NULL))
         {
           jfieldID fid;
-          fid = env->GetFieldID(exificient_options_class, "preserve_pis", "Z");
+          fid = env->GetFieldID(exificient_options_class.ptr, "preserve_pis", "Z");
           CHECK_EXCEPTION(env);
           env->SetBooleanField(exificient_options, fid, JNI_TRUE);
           CHECK_EXCEPTION(env);
@@ -491,7 +517,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
       if(getChildElement(lesscommon_child, "blockSize", &blockSize_child))
       {
         jfieldID fid;
-        fid = env->GetFieldID(exificient_options_class, "blockSize", "I");
+        fid = env->GetFieldID(exificient_options_class.ptr, "blockSize", "I");
         CHECK_EXCEPTION(env);
         int block_size = blockSize_child.getUnsignedIntValue();
         env->SetIntField(exificient_options, fid, (jint)block_size);
@@ -504,7 +530,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
       if(getChildElement(common_child, "compression", NULL))
       {
         jfieldID fid;
-        fid = env->GetFieldID(exificient_options_class, "coding", "I");
+        fid = env->GetFieldID(exificient_options_class.ptr, "coding", "I");
         CHECK_EXCEPTION(env);
         env->SetIntField(exificient_options, fid, 2);
         CHECK_EXCEPTION(env);
@@ -512,7 +538,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
       if(getChildElement(common_child, "fragment", NULL))
       {
         jfieldID fid;
-        fid = env->GetFieldID(exificient_options_class, "is_fragment", "Z");
+        fid = env->GetFieldID(exificient_options_class.ptr, "is_fragment", "Z");
         CHECK_EXCEPTION(env);
         env->SetBooleanField(exificient_options, fid, JNI_TRUE);
         CHECK_EXCEPTION(env);
@@ -521,21 +547,18 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
       if(getChildElement(common_child, "schemaId", &schemaId_child))
       {
         jfieldID fid;
-        fid = env->GetFieldID(exificient_options_class, "schema_location", "Ljava/lang/String;");
+        fid = env->GetFieldID(exificient_options_class.ptr, "schema_location", "Ljava/lang/String;");
         CHECK_EXCEPTION(env);
         String  schema_loc = schemaId_child.getStringValue();
-        jstring jschema_loc;
-        jschema_loc = env->NewStringUTF(schema_loc.c_str());
-        env->SetObjectField(exificient_options, fid, jschema_loc);
-        CHECK_EXCEPTION(env);
-        env->DeleteLocalRef(jschema_loc);
+        jstring_sptr jschema_loc(env, env->NewStringUTF(schema_loc.c_str()));
+        env->SetObjectField(exificient_options, fid, jschema_loc.ptr);
         CHECK_EXCEPTION(env);
       }
     }
     if(getChildElement(header_child, "strict", NULL))
     {
       jfieldID fid;
-      fid = env->GetFieldID(exificient_options_class, "strict_schema", "Z");
+      fid = env->GetFieldID(exificient_options_class.ptr, "strict_schema", "Z");
       CHECK_EXCEPTION(env);
       env->SetBooleanField(exificient_options, fid, JNI_TRUE);
       CHECK_EXCEPTION(env);
@@ -544,7 +567,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "cookie", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "include_cookie", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "include_cookie", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
@@ -552,7 +575,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "add-options", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "include_options", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "include_options", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
@@ -560,7 +583,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "add-insignificant-xsi-nil", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "include_insignificant_xsi_nil", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "include_insignificant_xsi_nil", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
@@ -568,7 +591,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "add-insignificant-xsi-type", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "include_insignificant_xsi_type", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "include_insignificant_xsi_type", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
@@ -576,7 +599,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "add-xsi-schemalocation", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "include_xsi_schemalocation", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "include_xsi_schemalocation", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
@@ -584,14 +607,11 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   if(getChildElement(exi_options, "preserve-entity-references", NULL))
   {
     jfieldID fid;
-    fid = env->GetFieldID(exificient_options_class, "preserve_entity_references", "Z");
+    fid = env->GetFieldID(exificient_options_class.ptr, "preserve_entity_references", "Z");
     CHECK_EXCEPTION(env);
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
   }
-
-  env->DeleteLocalRef(exificient_options_class);
-  CHECK_EXCEPTION(env);
 
   return exificient_options;
 }
@@ -610,11 +630,10 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
 
-    jclass  exificient_stub_class;
-    jmethodID decode_method_id;
-    exificient_stub_class = env->FindClass("com/zorbaxquery/exi/exificient_stub");
+    jclass_sptr  exificient_stub_class(env, env->FindClass("com/zorbaxquery/exi/exificient_stub"));
     CHECK_EXCEPTION(env);
-    decode_method_id= env->GetStaticMethodID(exificient_stub_class, 
+    jmethodID decode_method_id;
+    decode_method_id= env->GetStaticMethodID(exificient_stub_class.ptr, 
                                                 "decodeSchemaInformed", 
                                                 "([BLcom/zorbaxquery/exi/exificient_options;)Ljava/lang/String;");
     CHECK_EXCEPTION(env);
@@ -625,30 +644,27 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     unsigned char *exibin;
     size_t        exilen;
     Base64_decode(exibase64.c_str(), exibase64.size(), &exibin, &exilen);
-    jbyteArray  exiarray = env->NewByteArray(exilen);
-    env->SetByteArrayRegion(exiarray, 0, exilen, (jbyte*)exibin);
+    jbyteArray_sptr  exiarray(env, env->NewByteArray(exilen));
+    env->SetByteArrayRegion(exiarray.ptr, 0, exilen, (jbyte*)exibin);
     CHECK_EXCEPTION(env);
     free(exibin);
 
-    jobject options = parse_options(false, args);
-    jstring decoded_exi = (jstring)env->CallStaticObjectMethod(exificient_stub_class, decode_method_id, exiarray, options);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(exiarray);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(options);
+    jobject_sptr options(env, parse_options(false, args));
+    jstring_sptr decoded_exi(env, (jstring)env->CallStaticObjectMethod(exificient_stub_class.ptr, decode_method_id, exiarray.ptr, options.ptr));
     CHECK_EXCEPTION(env);
 
-    const char *existr = env->GetStringUTFChars(decoded_exi, NULL);
+    const char *existr = env->GetStringUTFChars(decoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);
     String  result_string(existr);
-    env->ReleaseStringUTFChars(decoded_exi, existr);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(decoded_exi);
+    env->ReleaseStringUTFChars(decoded_exi.ptr, existr);
     CHECK_EXCEPTION(env);
 
-    env->DeleteLocalRef(exificient_stub_class);
-    CHECK_EXCEPTION(env);
-
+    //+debug
+    //FILE  *fxml;
+    //fxml = fopen("e:\\xquery_development\\decoded_exi.xml", "w");
+    //fwrite(result_string.c_str(), 1, strlen(result_string.c_str()), fxml);
+    //fclose(fxml);
+    //end debug
     StaticContext_t   sctx = Zorba::getInstance(0)->createStaticContext();
     Item    parse_xml_name;
     parse_xml_name = theFactory->createQName("http://www.w3.org/2005/xpath-functions", "fn", "parse-xml");
@@ -671,22 +687,22 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   } catch (VMOpenException&) {
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "VM001");
-    throw USER_EXCEPTION(lQName, "Could not start the Java VM (is the classpath set?)");
+    throw USER_EXCEPTION(lQName, "Could not start the Java VM");
   } catch (JavaException&) {
-    jclass stringWriterClass = env->FindClass("java/io/StringWriter");
-    jclass printWriterClass = env->FindClass("java/io/PrintWriter");
-    jclass throwableClass = env->FindClass("java/lang/Throwable");
-    jobject stringWriter = env->NewObject(
-        stringWriterClass,
-        env->GetMethodID(stringWriterClass, "<init>", "()V"));
-    jobject printWriter = env->NewObject(
-        printWriterClass, env->GetMethodID(printWriterClass, "<init>", "(Ljava/io/Writer;)V"), stringWriter);
-    env->CallObjectMethod(lException, env->GetMethodID(throwableClass, "printStackTrace", "(Ljava/io/PrintWriter;)V"), printWriter);
+    jclass_sptr stringWriterClass(env, env->FindClass("java/io/StringWriter"));
+    jclass_sptr printWriterClass(env, env->FindClass("java/io/PrintWriter"));
+    jclass_sptr throwableClass(env, env->FindClass("java/lang/Throwable"));
+    jobject_sptr stringWriter(env, env->NewObject(
+        stringWriterClass.ptr,
+        env->GetMethodID(stringWriterClass.ptr, "<init>", "()V")));
+    jobject_sptr printWriter(env, env->NewObject(
+        printWriterClass.ptr, env->GetMethodID(printWriterClass.ptr, "<init>", "(Ljava/io/Writer;)V"), stringWriter.ptr));
+    env->CallObjectMethod(lException, env->GetMethodID(throwableClass.ptr, "printStackTrace", "(Ljava/io/PrintWriter;)V"), printWriter.ptr);
     //env->CallObjectMethod(printWriter, env->GetMethodID(printWriterClass, "flush", "()V"));
-    jmethodID toStringMethod = env->GetMethodID(stringWriterClass, "toString", "()Ljava/lang/String;");
-    jobject errorMessageObj = env->CallObjectMethod(
-        stringWriter, toStringMethod);
-    jstring errorMessage = (jstring) errorMessageObj;
+    jmethodID toStringMethod = env->GetMethodID(stringWriterClass.ptr, "toString", "()Ljava/lang/String;");
+    jobject_sptr errorMessageObj(env, env->CallObjectMethod(
+        stringWriter.ptr, toStringMethod));
+    jstring errorMessage = (jstring) errorMessageObj.ptr;
     const char *errMsg = env->GetStringUTFChars(errorMessage, 0);
     std::stringstream s;
     s << "A Java Exception was thrown:" << std::endl << errMsg;
@@ -696,18 +712,6 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     env->ExceptionClear();
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "JAVA-EXCEPTION");
-    env->DeleteLocalRef(errorMessage);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(printWriter);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(stringWriter);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(throwableClass);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(printWriterClass);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(stringWriterClass);
-    CHECK_EXCEPTION(env);
     throw USER_EXCEPTION(lQName, err);
   }
   return ItemSequence_t(new EmptySequence());
@@ -726,11 +730,10 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
   JNIEnv* env;
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
-    jclass  exificient_stub_class;
-    jmethodID encode_method_id;
-    exificient_stub_class = env->FindClass("com/zorbaxquery/exi/exificient_stub");
+    jclass_sptr  exificient_stub_class(env, env->FindClass("com/zorbaxquery/exi/exificient_stub"));
     CHECK_EXCEPTION(env);
-    encode_method_id= env->GetStaticMethodID(exificient_stub_class, 
+    jmethodID encode_method_id;
+    encode_method_id= env->GetStaticMethodID(exificient_stub_class.ptr, 
                                             "encodeSchemaInformed", 
                                             "(Ljava/lang/String;Lcom/zorbaxquery/exi/exificient_options;)[B");
     CHECK_EXCEPTION(env);
@@ -740,47 +743,38 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     Serializer_t lSerializer = Serializer::createSerializer(lOptions);
     std::ostringstream  lOutStream;
     lSerializer->serialize(args[0], lOutStream);
-    jstring xml_string;
-    xml_string = env->NewStringUTF(lOutStream.str().c_str());
+    jstring_sptr xml_string(env, env->NewStringUTF(lOutStream.str().c_str()));
     CHECK_EXCEPTION(env);
 
-    jobject options = parse_options(true, args);
-    jbyteArray encoded_exi = (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class, encode_method_id, xml_string, options);
+    jobject_sptr options(env, parse_options(true, args));
+    jbyteArray_sptr encoded_exi(env, (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class.ptr, encode_method_id, xml_string.ptr, options.ptr));
     CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(xml_string);
+    jbyte*  exi_bytes = env->GetByteArrayElements(encoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(options);
-    CHECK_EXCEPTION(env);
-    jbyte*  exi_bytes = env->GetByteArrayElements(encoded_exi, NULL);
-    CHECK_EXCEPTION(env);
-    zorba::Item result = theFactory->createBase64Binary((const unsigned char*)exi_bytes, env->GetArrayLength(encoded_exi));
-    env->ReleaseByteArrayElements(encoded_exi, exi_bytes, 0);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(encoded_exi);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(exificient_stub_class);
+    zorba::Item result = theFactory->createBase64Binary((const unsigned char*)exi_bytes, env->GetArrayLength(encoded_exi.ptr));
+    env->ReleaseByteArrayElements(encoded_exi.ptr, exi_bytes, 0);
     CHECK_EXCEPTION(env);
     return ItemSequence_t(new SingletonItemSequence(result));
 
   } catch (VMOpenException&) {
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "VM001");
-    throw USER_EXCEPTION(lQName, "Could not start the Java VM (is the classpath set?)");
+    throw USER_EXCEPTION(lQName, "Could not start the Java VM");
   } catch (JavaException&) {
-    jclass stringWriterClass = env->FindClass("java/io/StringWriter");
-    jclass printWriterClass = env->FindClass("java/io/PrintWriter");
-    jclass throwableClass = env->FindClass("java/lang/Throwable");
-    jobject stringWriter = env->NewObject(
-        stringWriterClass,
-        env->GetMethodID(stringWriterClass, "<init>", "()V"));
-    jobject printWriter = env->NewObject(
-        printWriterClass, env->GetMethodID(printWriterClass, "<init>", "(Ljava/io/Writer;)V"), stringWriter);
-    env->CallObjectMethod(lException, env->GetMethodID(throwableClass, "printStackTrace", "(Ljava/io/PrintWriter;)V"), printWriter);
+    jclass_sptr stringWriterClass(env, env->FindClass("java/io/StringWriter"));
+    jclass_sptr printWriterClass(env, env->FindClass("java/io/PrintWriter"));
+    jclass_sptr throwableClass(env, env->FindClass("java/lang/Throwable"));
+    jobject_sptr stringWriter(env, env->NewObject(
+        stringWriterClass.ptr,
+        env->GetMethodID(stringWriterClass.ptr, "<init>", "()V")));
+    jobject_sptr printWriter(env, env->NewObject(
+        printWriterClass.ptr, env->GetMethodID(printWriterClass.ptr, "<init>", "(Ljava/io/Writer;)V"), stringWriter.ptr));
+    env->CallObjectMethod(lException, env->GetMethodID(throwableClass.ptr, "printStackTrace", "(Ljava/io/PrintWriter;)V"), printWriter.ptr);
     //env->CallObjectMethod(printWriter, env->GetMethodID(printWriterClass, "flush", "()V"));
-    jmethodID toStringMethod = env->GetMethodID(stringWriterClass, "toString", "()Ljava/lang/String;");
-    jobject errorMessageObj = env->CallObjectMethod(
-        stringWriter, toStringMethod);
-    jstring errorMessage = (jstring) errorMessageObj;
+    jmethodID toStringMethod = env->GetMethodID(stringWriterClass.ptr, "toString", "()Ljava/lang/String;");
+    jobject_sptr errorMessageObj(env, env->CallObjectMethod(
+        stringWriter.ptr, toStringMethod));
+    jstring errorMessage = (jstring) errorMessageObj.ptr;
     const char *errMsg = env->GetStringUTFChars(errorMessage, 0);
     std::stringstream s;
     s << "A Java Exception was thrown:" << std::endl << errMsg;
@@ -790,18 +784,6 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     env->ExceptionClear();
     Item lQName = theFactory->createQName(EXI_MODULE_NAMESPACE,
         "JAVA-EXCEPTION");
-    env->DeleteLocalRef(errorMessage);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(printWriter);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(stringWriter);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(throwableClass);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(printWriterClass);
-    CHECK_EXCEPTION(env);
-    env->DeleteLocalRef(stringWriterClass);
-    CHECK_EXCEPTION(env);
     throw USER_EXCEPTION(lQName, err);
   }
   return ItemSequence_t(new EmptySequence());
