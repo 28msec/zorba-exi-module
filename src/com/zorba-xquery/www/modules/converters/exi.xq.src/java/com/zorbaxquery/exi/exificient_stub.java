@@ -142,7 +142,10 @@ public final class exificient_stub {
 
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		transformer.transform(exiSource, new StreamResult(os));
-		return os.toString("UTF8");
+		if(exiFactory.isFragment())
+			return "fragment"+os.toString("UTF8");
+		else
+			return os.toString("UTF8");
 	}
 
 }

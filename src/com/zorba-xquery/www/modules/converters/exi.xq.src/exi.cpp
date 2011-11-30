@@ -655,7 +655,14 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
 
     const char *existr = env->GetStringUTFChars(decoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);
-    String  result_string(existr);
+    const char *existr2 = existr;
+    bool  is_fragment = false;
+    if(!strncmp(existr2, "fragment", strlen("fragment")))
+    {
+      is_fragment = true;
+      existr2 += strlen("fragment");
+    }
+    String  result_string(existr2);
     env->ReleaseStringUTFChars(decoded_exi.ptr, existr);
     CHECK_EXCEPTION(env);
 
@@ -667,7 +674,10 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     //end debug
     StaticContext_t   sctx = Zorba::getInstance(0)->createStaticContext();
     Item    parse_xml_name;
-    parse_xml_name = theFactory->createQName("http://www.w3.org/2005/xpath-functions", "fn", "parse-xml");
+    if(!is_fragment)
+      parse_xml_name = theFactory->createQName("http://www.w3.org/2005/xpath-functions", "fn", "parse-xml");
+    else
+      parse_xml_name = theFactory->createQName("http://www.zorba-xquery.com/modules/xml", "fn-zorba-xml", "parse-xml-fragment");
     std::vector<ItemSequence_t> parse_xml_args;
     parse_xml_args.push_back(ItemSequence_t(new SingletonItemSequence(theFactory->createString(result_string))));
     ItemSequence_t  xmldoc_seq = sctx->invoke(parse_xml_name, parse_xml_args);

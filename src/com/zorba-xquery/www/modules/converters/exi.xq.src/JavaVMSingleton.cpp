@@ -18,6 +18,7 @@
 #include <tchar.h>
 #else
 #include <unistd.h>
+#include <dlfcn.h>
 #endif
 #include <iostream>
 #include <string>
@@ -37,6 +38,10 @@ JavaVMSingleton* JavaVMSingleton::instance = NULL;
 
 typedef jint (JNICALL  *JNI_CreateJavaVM_func)(JavaVM **pvm, void **penv, void *args);
 #define CHECK_EXCEPTION(env)  if ((lException = env->ExceptionOccurred())) throw JavaException()
+
+void global_func()
+{
+}
 
 JavaVMSingleton::JavaVMSingleton(const char* classPath)
 {
@@ -216,18 +221,26 @@ std::string JavaVMSingleton::findExificient()
   WideCharToMultiByte(CP_UTF8, 0, module_path, -1, ascii_path, sizeof(ascii_path), NULL, NULL);
   jar_path = ascii_path;
 #endif
-  std::string::size_type last_bslash = jar_path.rfind('\\');
-  jar_path = jar_path.substr(0, last_bslash+1);
-  lJarFile = File::createFile(jar_path + "exificient_stub.jar");
-  if (!lJarFile->exists()) {
-    jar_path += "..\\";
-    lJarFile = File::createFile(jar_path + "exificient_stub.jar");
-    if (!lJarFile->exists()) {
-        throwError("Could not find exificient_stub.jar exificient.jar xercesImpl.jar xml-apis.jar");
-    }
+#else//!WIN32
+  Dl_info dll_info;
+  if(!dladdr(global_func, &dll_info))
+  {
+    jar_path = dll_info.dli_fname;
   }
 #endif
-
+  if(!jar_path.empty())
+  {
+    std::string::size_type last_bslash = jar_path.rfind('\\');
+    jar_path = jar_path.substr(0, last_bslash+1);
+    lJarFile = File::createFile(jar_path + "exificient_stub.jar");
+    if (!lJarFile->exists()) {
+      jar_path += "..\\";
+      lJarFile = File::createFile(jar_path + "exificient_stub.jar");
+      if (!lJarFile->exists()) {
+          throwError("Could not find exificient_stub.jar exificient.jar xercesImpl.jar xml-apis.jar");
+      }
+    }
+  }
   return jar_path + "exificient_stub.jar;" +
          jar_path + "exificient.jar;" +
          jar_path + "xercesImpl.jar;" +

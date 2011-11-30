@@ -4,6 +4,8 @@ import module namespace exi = "http://www.zorba-xquery.com/modules/converters/ex
 
 declare namespace exi-header = "http://www.w3.org/2009/exi";
 
+declare variable $input-doc external;
+
 let $options:=
 <exi-options:options>
   <exi-header:header>
@@ -19,4 +21,4 @@ let $options:=
   </exi-header:header>
 </exi-options:options>
 return
-exi:parse(exi:serialize(fn:doc("test.xml"), $options), $options)
+exi:parse(exi:serialize($input-doc, $options), $options)

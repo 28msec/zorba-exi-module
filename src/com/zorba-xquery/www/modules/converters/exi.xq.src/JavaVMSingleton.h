@@ -18,6 +18,7 @@
 #define JAVA_VM_SINGELTON
 
 #include <jni.h>
+#include <zorba/config.h>
 
 namespace zorba { namespace exi {
 
@@ -42,6 +43,8 @@ namespace zorba { namespace exi {
 
   class JavaException {
   };
+
+  ZORBA_DLL_PUBLIC void global_func();
 
 }} //namespace zorba, xslfo
 
