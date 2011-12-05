@@ -96,6 +96,8 @@ declare function local:concat-xml-text($texts as xs:string*) as xs:string
 
 declare %ann:sequential function local:compare-xml( $elem1 as node(), $elem2 as node() ) as xs:boolean
 {
+  (: fn:trace(fn:name($elem1), "elem1"); :)
+  (: fn:trace(fn:name($elem2), "elem2"); :)
   if(fn:not(fn:name($elem1) = fn:name($elem2))) then
     exit returning fn:false();
   else
@@ -114,7 +116,7 @@ declare %ann:sequential function local:compare-xml( $elem1 as node(), $elem2 as 
     exit returning fn:false();
   else 
     ();
-
+  (: fn:trace("attrs ok", "compare attrs"); :)
   if(fn:not(local:concat-xml-text($elem1/text()) = local:concat-xml-text($elem2/text()))) then
     fn:false()
   else 
@@ -168,7 +170,7 @@ declare %ann:sequential function local:check-exi($exiname as xs:string) as eleme
          let $xml := fn:doc($xmlname)
          let $decoded_exi := exi:parse($exi, $options)
          return
-         fn:trace(if(local:compare-xml($decoded_exi[1], $xml)) then "ok" else "fail", "decoding")
+         fn:trace(if(local:compare-xml($decoded_exi[1], $xml/element())) then "ok" else "fail", "decoding")
         }catch *
         {
           (<err-code>{$err:code}</err-code>,
@@ -191,7 +193,7 @@ return
 
 
 (:
-local:check-exi("E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\notebook\notebook.xml_DEFAULT_HEADER.exi")
+local:check-exi("E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\notebook\notebook.xml_DEFAULT.exi")
 :)
 
 (:

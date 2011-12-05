@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringBufferInputStream;
 
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -32,6 +33,8 @@ import com.siemens.ct.exi.api.sax.EXISource;
 import com.siemens.ct.exi.exceptions.UnsupportedOption;
 import com.siemens.ct.exi.grammar.Grammar;
 import com.siemens.ct.exi.helpers.DefaultEXIFactory;
+import com.siemens.ct.exi.api.stream.StAXEncoder;
+import javax.xml.stream.XMLEventReader;
 
 public final class exificient_stub {
 
@@ -91,20 +94,20 @@ public final class exificient_stub {
 			exiFactory.setFragment(true);
 	}
 	
-	public static byte[] encodeSchemaInformed(String xmlstr, 
+	public static byte[] encodeSchemaInformed(String[] xmlstr, 
 											  exificient_options options
 											  ) throws Exception {
 
 		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
 		set_options(exiFactory, options);
-		EXIResult exiResult;
 		// create default factory and EXI grammar for schema
 		if(options != null && options.schema_location != null && !options.schema_location.isEmpty()){
 			GrammarFactory grammarFactory = GrammarFactory.newInstance();
 			Grammar g = grammarFactory.createGrammar(options.schema_location);
 			exiFactory.setGrammar(g);
 		}
-		exiResult = new EXIResult(exiFactory);
+/*		
+  		EXIResult exiResult = new EXIResult(exiFactory);
 
 		ByteArrayOutputStream exiOS = new ByteArrayOutputStream();
 		exiResult.setOutputStream(exiOS);
@@ -114,6 +117,32 @@ public final class exificient_stub {
 		// parse xml file
 		InputStream xmlIS = new StringBufferInputStream(xmlstr);
 		xmlReader.parse(new InputSource(xmlIS));
+		return exiOS.toByteArray();
+*/
+/*		StAXEncoder stax_encoder = new StAXEncoder(exiFactory);
+		ByteArrayOutputStream exiOS = new ByteArrayOutputStream();
+		stax_encoder.setOutputStream(exiOS);
+		XMLInputFactory factory = XMLInputFactory.newInstance();
+		InputStream xmlIS = new StringBufferInputStream(xmlstr);
+		XMLEventReader	xmlReader = factory.createXMLEventReader(xmlIS);
+		stax_encoder.encode(xmlReader);
+		return exiOS.toByteArray();
+*/
+  		EXIResult exiResult = new EXIResult(exiFactory);
+  		MyFragmentContentHandler fragmentHandler = new MyFragmentContentHandler(exiResult.getHandler());
+
+		ByteArrayOutputStream exiOS = new ByteArrayOutputStream();
+		exiResult.setOutputStream(exiOS);
+		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
+		xmlReader.setContentHandler(fragmentHandler);
+
+		// parse xml file
+		for(int i=0;i<xmlstr.length;i++)
+		{
+			InputStream xmlIS = new StringBufferInputStream(xmlstr[i]);
+			xmlReader.parse(new InputSource(xmlIS));
+		}
+		exiResult.getHandler().endDocument();
 		return exiOS.toByteArray();
 	}
 

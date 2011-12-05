@@ -656,7 +656,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     const char *existr = env->GetStringUTFChars(decoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);
     const char *existr2 = existr;
-    bool  is_fragment = false;
+    bool  is_fragment = true;
     if(!strncmp(existr2, "fragment", strlen("fragment")))
     {
       is_fragment = true;
@@ -680,9 +680,15 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
       parse_xml_name = theFactory->createQName("http://www.zorba-xquery.com/modules/xml", "fn-zorba-xml", "parse-xml-fragment");
     std::vector<ItemSequence_t> parse_xml_args;
     parse_xml_args.push_back(ItemSequence_t(new SingletonItemSequence(theFactory->createString(result_string))));
+    if(is_fragment)
+    {
+      parse_xml_args.push_back(ItemSequence_t(new SingletonItemSequence(theFactory->createString("eW"))));
+      Zorba_CompilerHints_t compiler_hints;
+      sctx->loadProlog("import module namespace fn-zorba-xml = \"http://www.zorba-xquery.com/modules/xml\";", compiler_hints);
+    }
     ItemSequence_t  xmldoc_seq = sctx->invoke(parse_xml_name, parse_xml_args);
     return xmldoc_seq;
-
+    
   /*
     // Create the result
     dataSize = env->GetArrayLength(res);
@@ -745,19 +751,39 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     jmethodID encode_method_id;
     encode_method_id= env->GetStaticMethodID(exificient_stub_class.ptr, 
                                             "encodeSchemaInformed", 
-                                            "(Ljava/lang/String;Lcom/zorbaxquery/exi/exificient_options;)[B");
+                                            "([Ljava/lang/String;Lcom/zorbaxquery/exi/exificient_options;)[B");
     CHECK_EXCEPTION(env);
 
+    Iterator_t  a0_iter = args[0]->getIterator();
+    int nr_xmls = 0;
+    Item  node_item;
+    a0_iter->open();
+    while(a0_iter->next(node_item))
+      nr_xmls++;
+    a0_iter->close();
+    jclass_sptr  string_class(env, env->FindClass("java/lang/String"));
+    CHECK_EXCEPTION(env);
+    jobjectArray_sptr xmlstr_array(env, (jobjectArray)env->NewObjectArray(nr_xmls, string_class.ptr, NULL));
+    CHECK_EXCEPTION(env);
     Zorba_SerializerOptions lOptions;
     lOptions.ser_method = ZORBA_SERIALIZATION_METHOD_XML;
     Serializer_t lSerializer = Serializer::createSerializer(lOptions);
-    std::ostringstream  lOutStream;
-    lSerializer->serialize(args[0], lOutStream);
-    jstring_sptr xml_string(env, env->NewStringUTF(lOutStream.str().c_str()));
-    CHECK_EXCEPTION(env);
+    jsize i = 0;
+    a0_iter->open();
+    while(a0_iter->next(node_item))
+    {
+      std::ostringstream  lOutStream;
+      lSerializer->serialize(ItemSequence_t(new SingletonItemSequence(node_item)), lOutStream);
+      jstring_sptr xml_string(env, env->NewStringUTF(lOutStream.str().c_str()));
+      CHECK_EXCEPTION(env);
+      env->SetObjectArrayElement(xmlstr_array.ptr, i, xml_string.ptr);
+      CHECK_EXCEPTION(env);
+      i++;
+    }
+    a0_iter->close();
 
     jobject_sptr options(env, parse_options(true, args));
-    jbyteArray_sptr encoded_exi(env, (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class.ptr, encode_method_id, xml_string.ptr, options.ptr));
+    jbyteArray_sptr encoded_exi(env, (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class.ptr, encode_method_id, xmlstr_array.ptr, options.ptr));
     CHECK_EXCEPTION(env);
     jbyte*  exi_bytes = env->GetByteArrayElements(encoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);

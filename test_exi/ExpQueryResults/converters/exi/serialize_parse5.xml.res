@@ -1,0 +1,1 @@
+<elem1></elem1><elem1>aaa<elem2></elem2>bbb</elem1><elem3 attr1="value1"></elem3>
