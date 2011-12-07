@@ -133,7 +133,7 @@ declare function local:compare-exi-without-version($exi1 as xs:base64Binary, $ex
 
 declare function local:display-file-name($fname as xs:string?) as xs:string?
 {
-  fn:replace($fname, ".*(test_exi.*)$", "$1")
+  fn:replace(fn:replace($fname, ".*(test_exi.*)$", "$1"), "\\", "/")
 };
 
 (:
