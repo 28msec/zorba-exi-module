@@ -53,9 +53,9 @@ JavaVMSingleton::JavaVMSingleton(const char* classPath)
   classpathOption += classPath;
   options[0].optionString = (char*)classpathOption.c_str();
   options[0].extraInfo = NULL;
-  options[1].optionString = "-Xmx700m";
+  options[1].optionString = (char*)"-Xmx700m";
   options[1].extraInfo = NULL;
-  options[2].optionString = "-XX:MaxPermSize=128m";
+  options[2].optionString = (char*)"-XX:MaxPermSize=128m";
   options[2].extraInfo = NULL;
   //options[3].optionString = "-Xlp16m";
   //options[3].extraInfo = NULL;
@@ -72,11 +72,11 @@ JavaVMSingleton::JavaVMSingleton(const char* classPath)
   }
   JNI_CreateJavaVM_func create_jvm = (JNI_CreateJavaVM_func)GetProcAddress(hVM, "JNI_CreateJavaVM");
 #else
-  void *libVM = dlopen("jvm.so", RTLD_LAZY);
+  void *libVM = dlopen("libjvm.so", RTLD_LAZY);
   if (libVM == NULL) {
     throw VMOpenException();
   }
-  JNI_CreateJavaVM_func create_jvm = dlsym(libVM, "JNI_CreateJavaVM");
+  JNI_CreateJavaVM_func create_jvm = (JNI_CreateJavaVM_func)dlsym(libVM, "JNI_CreateJavaVM");
 #endif
 */
   r = JNI_CreateJavaVM(&m_vm, (void **)&m_env, &args);
@@ -223,14 +223,14 @@ std::string JavaVMSingleton::findExificient()
 #endif
 #else//!WIN32
   Dl_info dll_info;
-  if(!dladdr(global_func, &dll_info))
+  if(dladdr((void*)global_func, &dll_info))
   {
     jar_path = dll_info.dli_fname;
   }
 #endif
   if(!jar_path.empty())
   {
-    std::string::size_type last_bslash = jar_path.rfind('\\');
+    std::string::size_type last_bslash = jar_path.find_last_of("\\/");
     jar_path = jar_path.substr(0, last_bslash+1);
     lJarFile = File::createFile(jar_path + "exificient_stub.jar");
     if (!lJarFile->exists()) {
@@ -241,9 +241,14 @@ std::string JavaVMSingleton::findExificient()
       }
     }
   }
-  return jar_path + "exificient_stub.jar;" +
-         jar_path + "exificient.jar;" +
-         jar_path + "xercesImpl.jar;" +
+#ifdef WIN32
+  const char *path_sep = ";";
+#else
+  const char *path_sep = ":";
+#endif
+  return jar_path + "exificient_stub.jar" + path_sep +
+         jar_path + "exificient.jar" + path_sep +
+         jar_path + "xercesImpl.jar" + path_sep +
          jar_path + "xml-apis.jar";
   //return std::string("./") + lDirectorySeparator + std::string("../") + lDirectorySeparator;// + "Debug" + lDirectorySeparator + "Release" + lDirectorySeparator;
   //return "E:\\xquery_development\\zorba_repo\\z_m2\\conv\\src\\com\\zorba-xquery\\www\\modules\\converters\\exi.xq.src\\java\\exificient_stub.jar";
