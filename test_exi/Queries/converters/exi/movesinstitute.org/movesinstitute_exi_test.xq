@@ -188,6 +188,7 @@ declare %ann:sequential function local:check-exi($exiname as xs:string) as eleme
 
 let $current-dir := fn:resolve-uri("./")
 for $f in file:list($current-dir, fn:true(), "*.exi")
+order by $f
 return
  local:check-exi(fn:trace(fn:concat($current-dir, $f), "exi file"))
 
