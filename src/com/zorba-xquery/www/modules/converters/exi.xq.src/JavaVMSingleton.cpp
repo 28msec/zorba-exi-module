@@ -36,7 +36,7 @@
 namespace zorba { namespace exi {
 JavaVMSingleton* JavaVMSingleton::instance = NULL;
 
-typedef jint (JNICALL  *JNI_CreateJavaVM_func)(JavaVM **pvm, void **penv, void *args);
+//typedef jint (JNICALL  *JNI_CreateJavaVM_func)(JavaVM **pvm, void **penv, void *args);
 #define CHECK_EXCEPTION(env)  if ((lException = env->ExceptionOccurred())) throw JavaException()
 
 void global_func()
@@ -64,7 +64,7 @@ JavaVMSingleton::JavaVMSingleton(const char* classPath)
   args.nOptions = 3;
   args.options  = options;
   args.ignoreUnrecognized = JNI_FALSE;
-
+/*
 #ifdef WIN32
   HMODULE hVM = LoadLibrary(_T("jvm.dll"));
   if (hVM == NULL) {
@@ -78,8 +78,8 @@ JavaVMSingleton::JavaVMSingleton(const char* classPath)
   }
   JNI_CreateJavaVM_func create_jvm = dlsym(libVM, "JNI_CreateJavaVM");
 #endif
-
-  r = create_jvm(&m_vm, (void **)&m_env, &args);
+*/
+  r = JNI_CreateJavaVM(&m_vm, (void **)&m_env, &args);
   if (r != JNI_OK) {
     throw VMOpenException();
   }
