@@ -6,7 +6,6 @@ public class exificient_options {
 	public boolean include_insignificant_xsi_type = false;
 	public boolean include_options = false;
 	public boolean include_xsi_schemalocation = false;
-	public String  schema_location = "";
 	
 	public boolean preserve_entity_references = false;
 	public boolean preserve_comments = false;
@@ -16,6 +15,8 @@ public class exificient_options {
 	public boolean preserve_prefixes = false;
 	
 	public boolean strict_schema = false;
+	public String  schema_location = "";
+	public String  schema_content = "";
 	
 	public javax.xml.namespace.QName[] selfContained;//also sets SELF_CONTAINED in fidelity options
 	

@@ -30,6 +30,7 @@ import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
+import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.exceptions.UnsupportedOption;
 import com.siemens.ct.exi.grammar.Grammar;
 import com.siemens.ct.exi.helpers.DefaultEXIFactory;
@@ -94,6 +95,22 @@ public final class exificient_stub {
 			exiFactory.setFragment(true);
 	}
 	
+	private static Grammar create_grammar(exificient_options options) throws EXIException
+	{
+		if(options == null)
+			return null;
+		GrammarFactory grammarFactory = GrammarFactory.newInstance();
+		if(options.schema_content != null && !options.schema_content.isEmpty())
+		{
+			InputStream schemaContentIS = new StringBufferInputStream(options.schema_content);
+			return grammarFactory.createGrammar(schemaContentIS);
+		}
+		else if(options.schema_location != null && !options.schema_location.isEmpty())
+			return grammarFactory.createGrammar(options.schema_location);
+		else
+			return null;
+	}
+	
 	public static byte[] encodeSchemaInformed(String[] xmlstr, 
 											  exificient_options options
 											  ) throws Exception {
@@ -101,11 +118,9 @@ public final class exificient_stub {
 		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
 		set_options(exiFactory, options);
 		// create default factory and EXI grammar for schema
-		if(options != null && options.schema_location != null && !options.schema_location.isEmpty()){
-			GrammarFactory grammarFactory = GrammarFactory.newInstance();
-			Grammar g = grammarFactory.createGrammar(options.schema_location);
+		Grammar g = create_grammar(options);
+		if(g != null)
 			exiFactory.setGrammar(g);
-		}
 /*		
   		EXIResult exiResult = new EXIResult(exiFactory);
 
@@ -153,12 +168,9 @@ public final class exificient_stub {
 		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
 		set_options(exiFactory, options);
 		EXISource saxSource;
-		if(options != null && options.schema_location != null && !options.schema_location.isEmpty()){
-			// create default factory and EXI grammar for schema
-			GrammarFactory grammarFactory = GrammarFactory.newInstance();
-			Grammar g = grammarFactory.createGrammar(options.schema_location);
+		Grammar g = create_grammar(options);
+		if(g != null)
 			exiFactory.setGrammar(g);
-		}
 		saxSource = new EXISource(exiFactory);
 
 		XMLReader exiReader = saxSource.getXMLReader();

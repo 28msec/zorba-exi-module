@@ -580,6 +580,17 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
     env->SetBooleanField(exificient_options, fid, JNI_TRUE);
     CHECK_EXCEPTION(env);
   }
+  Item schemacontent_child;
+  if(getChildElement(exi_options, "schema-content", &schemacontent_child))
+  {
+    jfieldID fid;
+    fid = env->GetFieldID(exificient_options_class.ptr, "schema_content", "Ljava/lang/String;");
+    CHECK_EXCEPTION(env);
+    String  schema_content = schemacontent_child.getStringValue();
+    jstring_sptr jschema_content(env, env->NewStringUTF(schema_content.c_str()));
+    env->SetObjectField(exificient_options, fid, jschema_content.ptr);
+    CHECK_EXCEPTION(env);
+  }
   if(getChildElement(exi_options, "add-insignificant-xsi-nil", NULL))
   {
     jfieldID fid;

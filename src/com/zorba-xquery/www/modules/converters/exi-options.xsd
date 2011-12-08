@@ -32,6 +32,11 @@
         <xsd:element name="add-options" minOccurs="0">
           <xsd:complexType/>
         </xsd:element>
+        <xsd:element name="schema-content" minOccurs="0">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:string"/>
+          </xsd:simpleType>
+        </xsd:element>
         <xsd:element name="add-insignificant-xsi-nil" minOccurs="0">
           <xsd:complexType/>
         </xsd:element>
