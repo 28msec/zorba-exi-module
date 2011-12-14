@@ -341,13 +341,13 @@ static void add_datatyperepresentationmap(JNIEnv* env,
   }
   env->SetObjectField(exificient_options, datatypes_fid, jdatatypes_array.ptr);
   CHECK_EXCEPTION(env);
-  env->SetObjectField(exificient_options, datatypes_fid, jrepresentations_array.ptr);
+  env->SetObjectField(exificient_options, representations_fid, jrepresentations_array.ptr);
   CHECK_EXCEPTION(env);
 }
 
 static jobject parse_options(bool is_serialize, const ExternalFunction::Arguments_t& args)
 {
-  bool has_selfcontained = false;
+  //bool has_selfcontained = false;
   int  nr_items = 0;
   Iterator_t lIter;
   jthrowable lException = 0;
@@ -396,7 +396,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
         }
         if(is_serialize && getChildElement(uncommon_child, "selfContained", NULL))
         {
-          has_selfcontained = true;
+          //has_selfcontained = true;
           Iterator_t lIterInput;
 
           std::vector<Item> root_elems;
@@ -637,7 +637,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   lIter->next(exi_input);
   lIter->close();
   jthrowable lException = 0;
-  JNIEnv* env;
+  JNIEnv* env = NULL;
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
 
@@ -754,7 +754,7 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
   //lIter->next(element_input);
   //lIter->close();
   jthrowable lException = 0;
-  JNIEnv* env;
+  JNIEnv* env = NULL;
   try {
     env = JavaVMSingleton::getInstance()->getEnv();
     jclass_sptr  exificient_stub_class(env, env->FindClass("com/zorbaxquery/exi/exificient_stub"));
