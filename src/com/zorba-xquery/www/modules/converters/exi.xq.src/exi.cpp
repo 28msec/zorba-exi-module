@@ -38,6 +38,11 @@
 
 #define EXI_MODULE_NAMESPACE "http://www.zorba-xquery.com/modules/converters/exi"
 
+class JavaException {
+};
+
+class VMOpenException {
+};
 
 #define CHECK_EXCEPTION(env)  if ((lException = env->ExceptionOccurred())) throw JavaException()
 
@@ -156,7 +161,7 @@ public:
   ~jbyteArray_sptr() {if(ptr) env->DeleteLocalRef(ptr);}
 };
 
-class EXISerializeFunction : public NonContextualExternalFunction {
+class EXISerializeFunction : public ContextualExternalFunction {
   private:
     const ExternalModule* theModule;
     ItemFactory* theFactory;
@@ -164,7 +169,7 @@ class EXISerializeFunction : public NonContextualExternalFunction {
     EXISerializeFunction(const ExternalModule* aModule) :
       theModule(aModule), theFactory(Zorba::getInstance(0)->getItemFactory()) {}
     ~EXISerializeFunction() {
-      JavaVMSingleton::destroyInstance();
+      //JavaVMSingleton::destroyInstance();
     }
 
   public:
@@ -173,10 +178,12 @@ class EXISerializeFunction : public NonContextualExternalFunction {
     virtual String getLocalName() const { return "serialize-internal"; }
 
     virtual ItemSequence_t 
-    evaluate(const ExternalFunction::Arguments_t& args) const;
+    evaluate(const ExternalFunction::Arguments_t& args, 
+             const zorba::StaticContext*,
+             const zorba::DynamicContext*) const;
 };
 
-class EXIParseFunction : public NonContextualExternalFunction {
+class EXIParseFunction : public ContextualExternalFunction {
   private:
     const ExternalModule* theModule;
     ItemFactory* theFactory;
@@ -191,7 +198,9 @@ class EXIParseFunction : public NonContextualExternalFunction {
     virtual String getLocalName() const { return "parse-internal"; }
 
     virtual ItemSequence_t 
-    evaluate(const ExternalFunction::Arguments_t& args) const;
+    evaluate(const ExternalFunction::Arguments_t& args,
+             const zorba::StaticContext*,
+             const zorba::DynamicContext*) const;
 };
 
 class EXIModule : public ExternalModule {
@@ -345,7 +354,7 @@ static void add_datatyperepresentationmap(JNIEnv* env,
   CHECK_EXCEPTION(env);
 }
 
-static jobject parse_options(bool is_serialize, const ExternalFunction::Arguments_t& args)
+static jobject parse_options(bool is_serialize, const ExternalFunction::Arguments_t& args, const zorba::StaticContext* aStaticContext)
 {
   //bool has_selfcontained = false;
   int  nr_items = 0;
@@ -361,7 +370,7 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
     return NULL;
   }
 
-  JNIEnv* env = JavaVMSingleton::getInstance()->getEnv();
+  JNIEnv* env = jvm::JavaVMSingleton::getInstance(aStaticContext)->getEnv();
   jclass_sptr exificient_options_class(env, env->FindClass("com/zorbaxquery/exi/exificient_options"));
   CHECK_EXCEPTION(env);
   jobject exificient_options = env->NewObject(exificient_options_class.ptr,
@@ -627,7 +636,9 @@ static jobject parse_options(bool is_serialize, const ExternalFunction::Argument
   return exificient_options;
 }
 
-ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& args) const
+ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& args, 
+                                          const zorba::StaticContext* aStaticContext,
+                                          const zorba::DynamicContext* aDynamicContext) const
 {
   Iterator_t lIter;
 
@@ -639,7 +650,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   jthrowable lException = 0;
   JNIEnv* env = NULL;
   try {
-    env = JavaVMSingleton::getInstance()->getEnv();
+    env = jvm::JavaVMSingleton::getInstance(aStaticContext)->getEnv();
 
     jclass_sptr  exificient_stub_class(env, env->FindClass("com/zorbaxquery/exi/exificient_stub"));
     CHECK_EXCEPTION(env);
@@ -660,7 +671,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     CHECK_EXCEPTION(env);
     free(exibin);
 
-    jobject_sptr options(env, parse_options(false, args));
+    jobject_sptr options(env, parse_options(false, args, aStaticContext));
     jstring_sptr decoded_exi(env, (jstring)env->CallStaticObjectMethod(exificient_stub_class.ptr, decode_method_id, exiarray.ptr, options.ptr));
     CHECK_EXCEPTION(env);
 
@@ -744,7 +755,9 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
   return ItemSequence_t(new EmptySequence());
 }
 
-ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_t& args) const
+ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_t& args,
+                                              const zorba::StaticContext* aStaticContext,
+                                              const zorba::DynamicContext* aDynamicContext) const
 {
   //Iterator_t lIter;
 
@@ -756,7 +769,7 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
   jthrowable lException = 0;
   JNIEnv* env = NULL;
   try {
-    env = JavaVMSingleton::getInstance()->getEnv();
+    env = jvm::JavaVMSingleton::getInstance(aStaticContext)->getEnv();
     jclass_sptr  exificient_stub_class(env, env->FindClass("com/zorbaxquery/exi/exificient_stub"));
     CHECK_EXCEPTION(env);
     jmethodID encode_method_id;
@@ -793,7 +806,7 @@ ItemSequence_t EXISerializeFunction::evaluate(const ExternalFunction::Arguments_
     }
     a0_iter->close();
 
-    jobject_sptr options(env, parse_options(true, args));
+    jobject_sptr options(env, parse_options(true, args, aStaticContext));
     jbyteArray_sptr encoded_exi(env, (jbyteArray)env->CallStaticObjectMethod(exificient_stub_class.ptr, encode_method_id, xmlstr_array.ptr, options.ptr));
     CHECK_EXCEPTION(env);
     jbyte*  exi_bytes = env->GetByteArrayElements(encoded_exi.ptr, NULL);

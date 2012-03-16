@@ -31,10 +31,14 @@ IF(JNI_FOUND)
   #FILE(COPY exi.xq.src/java/xercesImpl.jar DESTINATION exi.xq.src/)
   #FILE(COPY exi.xq.src/java/xml-apis.jar DESTINATION exi.xq.src/)
   #FILE(COPY exi.xq.src/java/exificient_stub.jar DESTINATION exi.xq.src/)
-  ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar" "com/zorba-xquery/www/modules/converters/exificient_stub.jar" "" "" "runtime")
-  ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar" "com/zorba-xquery/www/modules/converters/exificient.jar" "" "" "runtime")
-  ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar" "com/zorba-xquery/www/modules/converters/xercesImpl.jar" "" "" "runtime")
-  ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xml-apis.jar" "com/zorba-xquery/www/modules/converters/xml-apis.jar" "" "" "runtime")
+  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar" "com/zorba-xquery/www/modules/converters/exificient_stub.jar" "" "" "runtime")
+  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar" "com/zorba-xquery/www/modules/converters/exificient.jar" "" "" "runtime")
+  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar" "com/zorba-xquery/www/modules/converters/xercesImpl.jar" "" "" "runtime")
+  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xml-apis.jar" "com/zorba-xquery/www/modules/converters/xml-apis.jar" "" "" "runtime")
+  DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar")
+  DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar")
+  DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar")
+  DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xml-apis.jar")
   INSTALL (FILES "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar"
                  "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar"
                  "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar"

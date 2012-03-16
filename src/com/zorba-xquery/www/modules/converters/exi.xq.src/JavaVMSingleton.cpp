@@ -13,97 +13,126 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef WIN32
-#include <Windows.h>
-#include <tchar.h>
-#else
-#include <unistd.h>
-#include <dlfcn.h>
-#endif
+
+#include <fstream>
 #include <iostream>
+#include <istream>
 #include <string>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
 
-#include <zorba/file.h>
-#include <zorba/item.h>
-#include <zorba/zorba.h>
-#include <zorba/user_exception.h>
-
 #include "JavaVMSingleton.h"
+#include <zorba/util/path.h>
+#include <zorba/util/file.h>
+#include <zorba/zorba.h>
 
-namespace zorba { namespace exi {
+
+namespace zorba { namespace jvm {
 JavaVMSingleton* JavaVMSingleton::instance = NULL;
-
-//typedef jint (JNICALL  *JNI_CreateJavaVM_func)(JavaVM **pvm, void **penv, void *args);
-#define CHECK_EXCEPTION(env)  if ((lException = env->ExceptionOccurred())) throw JavaException()
-
-void global_func()
-{
-}
 
 JavaVMSingleton::JavaVMSingleton(const char* classPath)
 {
-  JavaVMInitArgs args;
-  JavaVMOption options[4];
-  jint r;
+  //std::cout << "JavaVMSingleton::JavaVMSingleton classPath: " << classPath << "\n"; std::cout.flush();
 
-  std::string classpathOption = "-Djava.class.path=";
-  classpathOption += classPath;
-  options[0].optionString = (char*)classpathOption.c_str();
-  options[0].extraInfo = NULL;
-  options[1].optionString = (char*)"-Xmx700m";
-  options[1].extraInfo = NULL;
-  options[2].optionString = (char*)"-XX:MaxPermSize=128m";
-  options[2].extraInfo = NULL;
-  //options[3].optionString = "-Xlp16m";
-  //options[3].extraInfo = NULL;
   memset(&args, 0, sizeof(args));
-  args.version  = JNI_VERSION_1_6;
-  args.nOptions = 3;
+  jint r;
+  jint nOptions = 2;
+
+  std::string classpathOption;
+  std::ostringstream os;
+  os << "-Djava.class.path=" << classPath;
+  classpathOption = os.str();
+  classPathOption = new char[classpathOption.size() + 1];
+  memset(classPathOption, 0, sizeof(char) * (classpathOption.size() + 1));
+  memcpy(classPathOption, classpathOption.c_str(), classpathOption.size() * sizeof(char));
+  std::string lAwtArgStr = "-Djava.awt.headless=true";
+  awtOption = new char[lAwtArgStr.size() + 1];
+  memset(awtOption, 0, sizeof(char) * (lAwtArgStr.size() + 1));
+  memcpy(awtOption, lAwtArgStr.c_str(), sizeof(char) * lAwtArgStr.size());
+  awtOption[lAwtArgStr.size()] = 0;
+  options[0].optionString = classPathOption;
+  options[0].extraInfo = NULL;
+  options[1].optionString = awtOption;
+  options[1].extraInfo = NULL;
+  memset(&args, 0, sizeof(args));
+  args.version  = JNI_VERSION_1_2;
+  args.nOptions = nOptions;
   args.options  = options;
   args.ignoreUnrecognized = JNI_FALSE;
-/*
-#ifdef WIN32
-  HMODULE hVM = LoadLibrary(_T("jvm.dll"));
-  if (hVM == NULL) {
-    throw VMOpenException();
-  }
-  JNI_CreateJavaVM_func create_jvm = (JNI_CreateJavaVM_func)GetProcAddress(hVM, "JNI_CreateJavaVM");
-#else
-  void *libVM = dlopen("libjvm.so", RTLD_LAZY);
-  if (libVM == NULL) {
-    throw VMOpenException();
-  }
-  JNI_CreateJavaVM_func create_jvm = (JNI_CreateJavaVM_func)dlsym(libVM, "JNI_CreateJavaVM");
-#endif
-*/
+
   r = JNI_CreateJavaVM(&m_vm, (void **)&m_env, &args);
   if (r != JNI_OK) {
     throw VMOpenException();
   }
-
 }
 
 JavaVMSingleton::~JavaVMSingleton()
 {
   if (instance) {
+    delete instance;
     instance = NULL;
   }
   m_vm->DestroyJavaVM();
+  if (awtOption)
+    delete[] awtOption;
+  if (classPathOption)
+    delete[] classPathOption;
 }
 
-JavaVMSingleton* JavaVMSingleton::getInstance()
+JavaVMSingleton* JavaVMSingleton::getInstance(const char* classPath)
 {
-  if (instance == NULL) {
-    instance = new JavaVMSingleton(findExificient().c_str());
+//#ifdef WIN32
+//  // If pointer to instance of JavaVMSingleton exists (true) then return instance pointer else look for
+//  // instance pointer in memory mapped pointer. If the instance pointer does not exist in
+//  // memory mapped pointer, return a newly created pointer to an instance of Abc.
+
+//  return instance ?
+//     instance : (instance = (JavaVMSingleton*) MemoryMappedPointers::getPointer("JavaVMSingleton")) ?
+//     instance : (instance = (JavaVMSingleton*) MemoryMappedPointers::createEntry("JavaVMSingleton",(void*)new JavaVMSingleton(classPath)));
+//#else
+
+
+  // If pointer to instance of JavaVMSingleton exists (true) then return instance pointer
+  // else return a newly created pointer to an instance of JavaVMSingleton.
+  if (instance == NULL)
+  {
+    JavaVM *jvms;
+    jsize nVMs;
+    if ( JNI_GetCreatedJavaVMs(&jvms, 1, &nVMs)==0 )
+    {
+      //std::cout << "Got JVMs " << nVMs << "\n"; std::cout.flush();
+      if (nVMs == 1)
+      {
+        JavaVM *jvm = jvms;
+        JNIEnv *env;
+        if( jvm->AttachCurrentThread((void **)&env, NULL) ==0 )
+        {
+          // if there is a jvm opened already by a diffrent dynamic lib
+          // make a singleton for this lib with that jvm
+          instance = new JavaVMSingleton(jvm, env);
+        }
+      }
+    }
+
+    if (instance == NULL)
+    {
+      instance = new JavaVMSingleton(classPath);
+    }
   }
+
   return instance;
 }
 
-void JavaVMSingleton::destroyInstance() {
-  delete instance;
+JavaVMSingleton* JavaVMSingleton::getInstance(const zorba::StaticContext* aStaticContext)
+{
+  if (instance == NULL)
+  {
+    String cp = computeClassPath(aStaticContext);
+    return getInstance(cp.c_str());
+  }
+
+  return instance;
 }
 
 JavaVM* JavaVMSingleton::getVM()
@@ -116,145 +145,88 @@ JNIEnv* JavaVMSingleton::getEnv()
   return m_env;
 }
 
-void JavaVMSingleton::throwError(std::string aName) 
-{
-  Item lQName = Zorba::getInstance(0)->getItemFactory()->createQName("http://www.zorba-xquery.com/modules/converters/exi",
-      "JAR-NOT-FOUND");
-  throw USER_EXCEPTION(lQName, aName);
-}
 
-std::string JavaVMSingleton::findExificient()
+String JavaVMSingleton::computeClassPath(const zorba::StaticContext* aStaticContext)
 {
-  std::string lDirectorySeparator(File::getDirectorySeparator());
-/*
-  std::string lExificientHome;
+  String cp;
+
+  // get classpath from global Properties
+  PropertiesGlobal * properties = Zorba::getInstance(NULL)->getProperties();
+  std::string globalClassPath;
+  properties->getJVMClassPath(globalClassPath);
+  cp += globalClassPath;
+
+  std::vector<String> lCPV;
+  aStaticContext->getFullLibPath(lCPV);
+
+  String pathSeparator(filesystem_path::get_path_separator());
+  String dirSeparator(filesystem_path::get_directory_separator());
+
+  for (std::vector<String>::iterator lIter = lCPV.begin();
+       lIter != lCPV.end(); ++lIter)
   {
-    char* lExificientHomeEnv = getenv("EXIFICIENT_HOME");
-    if (lExificientHomeEnv != 0) {
-      lExificientHome = lExificientHomeEnv;
-    }
-#ifdef APPLE
-    else {
-      std::string lExificientPath("/opt/local/share/java/exificient/");
-      File_t lRootDir = File::createFile(lExificientPath);
-      if (lRootDir->exists() && lRootDir->isDirectory()) {
-        lExificientHome = lExificientPath;
-      }
-    }
-#endif
-  }
-  std::string lExificientLibDir;
-  if(lExificientHome.empty())
-  {
-    char* lEnv = getenv("EXIFICIENT_LIB_DIR");
-    if (lEnv != 0) {
-      lExificientLibDir = lEnv;
-    }
-#ifdef LINUX
-    else {
-      lExificientLibDir = "/usr/share/java";
-    }
-#endif
-  }
-  // If neither a path to the fop install dir, nor a path
-  // to the jar files was found so far, we throw an exception.
-  if (lExificientHome == "" && lExificientLibDir == "") {
-    throwError("None of the environment variables EXIFICIENT_HOME and EXIFICIENT_LIB_DIR have been set.");
-  }
-  std::string lExificientJarFile;
-  {
-    // Here we look for the exificient.jar file.
-    File_t lJarFile;
-    std::string lExificientJarFile1;
-    if(!lExificientHome.empty())
+    // verify it contains a jars dir
+    const filesystem_path baseFsPath((*lIter).str());
+    const filesystem_path jarsFsPath(std::string("jars"));
+    filesystem_path jarsDirPath(baseFsPath, jarsFsPath);
+
+    file jarsDir(jarsDirPath);
+
+    if ( jarsDir.exists() && jarsDir.is_directory())
     {
-      lExificientJarFile = lExificientHome + lDirectorySeparator + "lib" + lDirectorySeparator + "exificient.jar";
-      lExificientJarFile1 = lExificientJarFile;
-      lJarFile = File::createFile(lExificientJarFile);
-    }
-    if (lExificientHome.empty() || !lJarFile->exists()) {
-      lExificientJarFile = lExificientLibDir + lDirectorySeparator + "exificient.jar";
-      lJarFile = File::createFile(lExificientJarFile);
-      if (!lJarFile->exists()) {
-        std::string errmsg = "Could not find exificient.jar. If you are using Ubuntu or Mac OS X, please make sure, ";
-        errmsg += "that you have installed it, else make sure, that you have set the environment variable ";
-        errmsg += "EXIFICIENT_HOME or EXIFICIENT_LIB_DIR correctly. Tried '";
-        errmsg +=  lExificientJarFile1;
-        errmsg += "' and '";
-        errmsg += lExificientJarFile;
-        errmsg += "'.";
-        throwError(errmsg);
+      std::vector<std::string> list;
+      jarsDir.lsdir(list);
+
+      for (std::vector<std::string>::iterator itemIter = list.begin();
+           itemIter != list.end(); ++itemIter)
+      {
+        filesystem_path itemLocalFS(*itemIter);
+        filesystem_path itemFS(jarsDirPath, itemLocalFS);
+        file itemFile(itemFS);
+        if ( itemFile.exists() && itemFile.is_file() )
+        {
+          std::string itemName = itemFile.get_path();
+          std::string suffix = "-classpath.txt";
+          size_t found;
+          found = itemName.rfind(suffix);
+          if (found!=std::string::npos &&
+              found + suffix.length() == itemName.length() )
+          {
+            std::auto_ptr<std::istream> pathFile;
+            pathFile.reset(new std::ifstream (itemName.c_str ()));
+            if (!pathFile->good() || pathFile->eof() )
+            {
+              std::cerr << "file {" << itemName << "} not found or not readable." << std::endl;
+              throw itemName;
+            }
+
+            // read file
+            char line[1024];
+            while( !pathFile->eof() && !pathFile->bad() && !pathFile->fail())
+            {
+              pathFile->getline(line, sizeof(line));
+              std::string lineStr(line);
+
+              if ( lineStr.size() == 0 )
+                continue;
+
+              //std::cout << "line: '" << lineStr << "'" << std::endl; std::cout.flush();
+
+              const std::string normalizedPath =
+                  filesystem_path::normalize_path( lineStr, jarsDirPath.get_path());
+
+              cp += pathSeparator + normalizedPath;
+            }
+          }
+        }
       }
     }
   }
-  std::string lClassPaths;
-  lClassPaths = lExificientJarFile;
-  {
-    std::string lJarDir = lExificientJarFile;
-    std::string::size_type  bslashpos;
-    while((bslashpos=lExificientJarFile.find('\\')) != std::string::npos)
-      lExificientJarFile.replace(bslashpos, 1, 1, '/');
-    lJarDir = lExificientJarFile.substr(0, lExificientJarFile.rfind('/'));
-    // This is a list of all jar files, EXIficient depends on.
-    lClassPaths += File::getPathSeparator();
-    lClassPaths += lJarDir + "xercesImpl";
-    lClassPaths += File::getPathSeparator();
-    lClassPaths += lJarDir + "xml-apis";
-    lClassPaths += File::getPathSeparator();
-  }
-  return lClassPaths;
-*/
-  File_t lJarFile;
-  std::string jar_path;
-#ifdef WIN32
-  TCHAR   module_path[1024];
-  HMODULE dll_handle;
-  GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, 
-                    (LPCTSTR)&JavaVMSingleton::instance,
-                    &dll_handle);
-  GetModuleFileName(dll_handle, module_path, sizeof(module_path)/sizeof(TCHAR));
-#ifndef UNICODE
-  jar_path = module_path;
-#else
-  char  ascii_path[1024];
-  ascii_path[0] = 0;
-  WideCharToMultiByte(CP_UTF8, 0, module_path, -1, ascii_path, sizeof(ascii_path), NULL, NULL);
-  jar_path = ascii_path;
-#endif
-#else//!WIN32
-  Dl_info dll_info;
-  if(dladdr((void*)global_func, &dll_info))
-  {
-    jar_path = dll_info.dli_fname;
-  }
-#endif
-  if(!jar_path.empty())
-  {
-    std::string::size_type last_bslash = jar_path.find_last_of("\\/");
-    jar_path = jar_path.substr(0, last_bslash+1);
-    lJarFile = File::createFile(jar_path + "exificient_stub.jar");
-    if (!lJarFile->exists()) {
-      jar_path += "..\\";
-      lJarFile = File::createFile(jar_path + "exificient_stub.jar");
-      if (!lJarFile->exists()) {
-          throwError("Could not find exificient_stub.jar exificient.jar xercesImpl.jar xml-apis.jar");
-      }
-    }
-  }
-#ifdef WIN32
-  const char *path_sep = ";";
-#else
-  const char *path_sep = ":";
-#endif
-  return jar_path + "exificient_stub.jar" + path_sep +
-         jar_path + "exificient.jar" + path_sep +
-         jar_path + "xercesImpl.jar" + path_sep +
-         jar_path + "xml-apis.jar";
-  //return std::string("./") + lDirectorySeparator + std::string("../") + lDirectorySeparator;// + "Debug" + lDirectorySeparator + "Release" + lDirectorySeparator;
-  //return "E:\\xquery_development\\zorba_repo\\z_m2\\conv\\src\\com\\zorba-xquery\\www\\modules\\converters\\exi.xq.src\\java\\exificient_stub.jar";
-    //"E:\\xquery_development\\xercesImpl.jar;"
-    //"E:\\xquery_development\\xml-apis.jar";
+
+  properties->setJVMClassPath(cp.str());
+
+  //std::cout << "JavaVMSingleton::computeClassPath: '" << cp << "'" << std::endl; std::cout.flush();
+  return cp;
 }
 
-
-}} // namespace zorba, xslfo
+}} // namespace zorba, jvm
