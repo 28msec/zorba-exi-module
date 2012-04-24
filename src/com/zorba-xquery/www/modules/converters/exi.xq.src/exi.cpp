@@ -678,7 +678,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     const char *existr = env->GetStringUTFChars(decoded_exi.ptr, NULL);
     CHECK_EXCEPTION(env);
     const char *existr2 = existr;
-    bool  is_fragment = true;
+    bool  is_fragment = false;
     if(!strncmp(existr2, "fragment", strlen("fragment")))
     {
       is_fragment = true;

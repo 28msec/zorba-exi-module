@@ -11,4 +11,4 @@ let $options:=
   </exi-header:header>
 </exi-options:options>
 return
-exi:parse(exi:serialize(fn:doc(".\sample-data\notebook.xml"), $options), $options)
+exi:parse(exi:serialize(fn:doc("./sample-data/notebook.xml"), $options), $options)

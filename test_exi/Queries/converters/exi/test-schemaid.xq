@@ -8,9 +8,9 @@ let $options:=
 <exi-options:options>
   <exi-header:header>
 	  <exi-header:common>
-        <exi-header:schemaId/>
+        <exi-header:schemaId>./sample-data/notebook.xsd</exi-header:schemaId>
       </exi-header:common>
   </exi-header:header>
 </exi-options:options>
 return
-exi:parse(exi:serialize(fn:doc(".\sample-data\notebook.xml"), $options), $options)
+exi:parse(exi:serialize(fn:doc("./sample-data/notebook.xml"), $options), $options)
