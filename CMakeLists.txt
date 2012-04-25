@@ -33,6 +33,13 @@ FIND_PACKAGE (Zorba REQUIRED HINTS "${ZORBA_BUILD_DIR}")
 MESSAGE(STATUS "Zorba_USE_FILE ${Zorba_USE_FILE}")
 INCLUDE ("${Zorba_USE_FILE}")
 
+# The util-jvm tool finds Java and JNI, so all standard cached JAVA_
+# variables will be set. util-jvm also caches Java_FOUND and JNI_FOUND
+# for us.
+FIND_PACKAGE (zorba_util-jvm_module REQUIRED)
+
+DECLARE_ZORBA_SCHEMA(FILE test_schemas/notebook.xsd
+  URI http://www.zorba-xquery.com/notebook TEST_ONLY)
 
 ADD_SUBDIRECTORY("src")
 

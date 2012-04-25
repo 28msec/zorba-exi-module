@@ -23,18 +23,15 @@ IF(JNI_FOUND)
   MESSAGE(STATUS "Found JNI, add EXI module")
   DECLARE_ZORBA_SCHEMA (FILE "exi-options.xsd" URI "http://www.zorba-xquery.com/modules/converters/exi-options")
   DECLARE_ZORBA_SCHEMA (FILE "exi-header.xsd" URI "http://www.zorba-xquery.com/modules/converters/exi-header") #"http://www.w3.org/2009/exi")
-  DECLARE_ZORBA_MODULE (URI "http://www.zorba-xquery.com/modules/converters/exi" VERSION 1.0 FILE "exi.xq" LINK_LIBRARIES "${JAVA_JVM_LIBRARY}")
+
+  INCLUDE_DIRECTORIES (${zorba_util-jvm_module_INCLUDE_DIRS})
+  DECLARE_ZORBA_MODULE (
+    URI "http://www.zorba-xquery.com/modules/converters/exi"
+    VERSION 1.0 FILE "exi.xq"
+    LINK_LIBRARIES "${JAVA_JVM_LIBRARY}" "${zorba_util-jvm_module_LIBRARIES}")
   INCLUDE_DIRECTORIES ("exi.xq.src")
   INCLUDE_DIRECTORIES (${JNI_INCLUDE_DIRS})
 
-  #FILE(COPY exi.xq.src/java/exificient.jar DESTINATION exi.xq.src/)
-  #FILE(COPY exi.xq.src/java/xercesImpl.jar DESTINATION exi.xq.src/)
-  #FILE(COPY exi.xq.src/java/xml-apis.jar DESTINATION exi.xq.src/)
-  #FILE(COPY exi.xq.src/java/exificient_stub.jar DESTINATION exi.xq.src/)
-  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar" "com/zorba-xquery/www/modules/converters/exificient_stub.jar" "" "" "runtime")
-  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar" "com/zorba-xquery/www/modules/converters/exificient.jar" "" "" "runtime")
-  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar" "com/zorba-xquery/www/modules/converters/xercesImpl.jar" "" "" "runtime")
-  #ADD_COPY_RULE(LIB "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xml-apis.jar" "com/zorba-xquery/www/modules/converters/xml-apis.jar" "" "" "runtime")
   DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient_stub.jar")
   DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/exificient.jar")
   DECLARE_ZORBA_JAR(FILE "${CMAKE_CURRENT_SOURCE_DIR}/exi.xq.src/java/xercesImpl.jar")

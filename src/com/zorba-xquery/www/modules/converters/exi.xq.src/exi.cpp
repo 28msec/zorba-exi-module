@@ -706,7 +706,11 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     {
       parse_xml_args.push_back(ItemSequence_t(new SingletonItemSequence(theFactory->createString("eW"))));
       Zorba_CompilerHints_t compiler_hints;
-      sctx->loadProlog("import module namespace fn-zorba-xml = \"http://www.zorba-xquery.com/modules/xml\";", compiler_hints);
+      sctx->loadProlog("import module namespace fn-zorba-xml = "
+                       "\"http://www.zorba-xquery.com/modules/xml\";\n"
+                       "import schema namespace opt = "
+                       "\"http://www.zorba-xquery.com/modules/xml-options\";",
+                       compiler_hints);
     }
     ItemSequence_t  xmldoc_seq = sctx->invoke(parse_xml_name, parse_xml_args);
     return xmldoc_seq;
