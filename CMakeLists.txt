@@ -36,11 +36,15 @@ INCLUDE ("${Zorba_USE_FILE}")
 # The util-jvm tool finds Java and JNI, so all standard cached JAVA_
 # variables will be set. util-jvm also caches Java_FOUND and JNI_FOUND
 # for us.
-FIND_PACKAGE (zorba_util-jvm_module REQUIRED)
+FIND_PACKAGE (zorba_util-jvm_module QUIET)
 
-DECLARE_ZORBA_SCHEMA(FILE test_schemas/notebook.xsd
-  URI http://www.zorba-xquery.com/notebook TEST_ONLY)
+IF (zorba_util-jvm_module_FOUND)
+  DECLARE_ZORBA_SCHEMA(FILE test_schemas/notebook.xsd
+    URI http://www.zorba-xquery.com/notebook TEST_ONLY)
 
-ADD_SUBDIRECTORY("src")
+  ADD_SUBDIRECTORY("src")
 
-DONE_DECLARING_ZORBA_URIS()
+  DONE_DECLARING_ZORBA_URIS()
+ELSE (zorba_util-jvm_module_FOUND)
+  MESSAGE ("Zorba's util-jvm module not found; skipping EXI module.")
+ENDIF (zorba_util-jvm_module_FOUND)
