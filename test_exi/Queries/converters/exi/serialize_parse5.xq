@@ -28,4 +28,4 @@ let $doc:=(<elem1/>,
            )
 
 return
-exi:parse(exi:serialize($doc, $options-serialize), $options-parse)
+exi:parse(exi:serialize($doc, $options-serialize), $options-serialize)

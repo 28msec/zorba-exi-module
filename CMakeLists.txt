@@ -39,9 +39,6 @@ INCLUDE ("${Zorba_USE_FILE}")
 FIND_PACKAGE (zorba_util-jvm_module QUIET)
 
 IF (zorba_util-jvm_module_FOUND)
-  DECLARE_ZORBA_SCHEMA(FILE test_schemas/notebook.xsd
-    URI http://www.zorba-xquery.com/notebook TEST_ONLY)
-
   ADD_SUBDIRECTORY("src")
 
   DONE_DECLARING_ZORBA_URIS()
