@@ -39,6 +39,8 @@ INCLUDE ("${Zorba_USE_FILE}")
 FIND_PACKAGE (zorba_util-jvm_module QUIET)
 
 IF (zorba_util-jvm_module_FOUND)
+  INCLUDE ("${zorba_util-jvm_module_USE_FILE}")
+  INCLUDE_DIRECTORIES ("${JAVA_INCLUDE_PATH}" "${JAVA_INCLUDE_PATH2}")
   ADD_SUBDIRECTORY("src")
 
   DONE_DECLARING_ZORBA_URIS()
