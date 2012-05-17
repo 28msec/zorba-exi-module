@@ -187,11 +187,6 @@ class EXIParseFunction : public ContextualExternalFunction {
   private:
     const ExternalModule* theModule;
     ItemFactory* theFactory;
-    // QQQ This is a hack! We need somewhere to keep the StaticContext that
-    // we use to invoke() parse-xml-fragment, but putting this is probably the
-    // wrong place. Having only one means that things may go pear-shaped if
-    // parse() is called more than once in a query.
-    mutable StaticContext_t theParseContext;
     void throwError(std::string aName) const;
   public:
     EXIParseFunction(const ExternalModule* aModule) :
@@ -698,7 +693,7 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     //fwrite(result_string.c_str(), 1, strlen(result_string.c_str()), fxml);
     //fclose(fxml);
     //end debug
-    theParseContext = Zorba::getInstance(0)->createStaticContext();
+    StaticContext_t lSctx = Zorba::getInstance(0)->createStaticContext();
     Item    parse_xml_name;
     if(!is_fragment)
       parse_xml_name = theFactory->createQName("http://www.w3.org/2005/xpath-functions", "fn", "parse-xml");
@@ -710,13 +705,13 @@ ItemSequence_t EXIParseFunction::evaluate(const ExternalFunction::Arguments_t& a
     {
       parse_xml_args.push_back(ItemSequence_t(new SingletonItemSequence(theFactory->createString("eW"))));
       Zorba_CompilerHints_t compiler_hints;
-      theParseContext->loadProlog("import module namespace fn-zorba-xml = "
+      lSctx->loadProlog("import module namespace fn-zorba-xml = "
                        "\"http://www.zorba-xquery.com/modules/xml\";\n"
                        "import schema namespace opt = "
                        "\"http://www.zorba-xquery.com/modules/xml-options\";",
                        compiler_hints);
     }
-    ItemSequence_t  xmldoc_seq = theParseContext->invoke(parse_xml_name, parse_xml_args);
+    ItemSequence_t  xmldoc_seq = lSctx->invoke(parse_xml_name, parse_xml_args);
     return xmldoc_seq;
     
   /*
