@@ -33,7 +33,17 @@ FIND_PACKAGE (Zorba REQUIRED HINTS "${ZORBA_BUILD_DIR}")
 MESSAGE(STATUS "Zorba_USE_FILE ${Zorba_USE_FILE}")
 INCLUDE ("${Zorba_USE_FILE}")
 
+# The util-jvm tool finds Java and JNI, so all standard cached JAVA_
+# variables will be set. util-jvm also caches Java_FOUND and JNI_FOUND
+# for us.
+FIND_PACKAGE (zorba_util-jvm_module QUIET)
 
-ADD_SUBDIRECTORY("src")
+IF (zorba_util-jvm_module_FOUND)
+  INCLUDE ("${zorba_util-jvm_module_USE_FILE}")
+  INCLUDE_DIRECTORIES ("${JAVA_INCLUDE_PATH}" "${JAVA_INCLUDE_PATH2}")
+  ADD_SUBDIRECTORY("src")
 
-DONE_DECLARING_ZORBA_URIS()
+  DONE_DECLARING_ZORBA_URIS()
+ELSE (zorba_util-jvm_module_FOUND)
+  MESSAGE ("Zorba's util-jvm module not found; skipping EXI module.")
+ENDIF (zorba_util-jvm_module_FOUND)

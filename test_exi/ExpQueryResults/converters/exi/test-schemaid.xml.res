@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<notebook xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" date="2007-09-12"><note date="2007-07-23" category="EXI"><subject>EXI</subject><body>Do not forget it!</body></note><note date="2007-09-12"><subject>shopping list</subject><body>milk, honey</body></note></notebook>
+<notebook xmlns:ns3="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" date="2007-09-12"><note date="2007-07-23" category="EXI"><subject>EXI</subject><body>Do not forget it!</body></note><note date="2007-09-12"><subject>shopping list</subject><body>milk, honey</body></note></notebook>

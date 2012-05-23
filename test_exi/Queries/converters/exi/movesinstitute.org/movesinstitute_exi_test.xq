@@ -170,7 +170,7 @@ declare %ann:sequential function local:check-exi($exiname as xs:string) as eleme
          let $xml := fn:doc($xmlname)
          let $decoded_exi := exi:parse($exi, $options)
          return
-         fn:trace(if(local:compare-xml($decoded_exi[1], $xml/element())) then "ok" else "fail", "decoding")
+         fn:trace(if(local:compare-xml($decoded_exi[1], $xml)) then "ok" else "fail", "decoding")
         }catch *
         {
           (<err-code>{$err:code}</err-code>,
@@ -191,29 +191,3 @@ for $f in file:list($current-dir, fn:true(), "*.exi")
 order by $f
 return
  local:check-exi(fn:trace(fn:concat($current-dir, $f), "exi file"))
-
-
-(:
-local:check-exi("E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries\converters\exi\movesinstitute.org\notebook\notebook.xml_DEFAULT.exi")
-:)
-
-(:
-let $exiname := "E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries/converters/exi/movesinstitute.org/notebook\notebook.xml_STRICT_COMPRESSED.exi"
-let $options := local:get-options-from-filename($exiname)
-let $exi := file:read-binary($exiname)
-let $decoded_exi := exi:parse($exi, $options)
-return $decoded_exi
-:)
-
-(:
-let $exiname := "E:\xquery_development\zorba_repo\z_m2\conv\test_exi\Queries/converters/exi/movesinstitute.org/notebook\notebook.xml_DEFAULT_HEADER.exi"
-let $options := local:get-options-from-filename($exiname)
-let $xmlname := local:get-xml-for-exi($exiname)
-let $exi := file:read-binary($exiname)
-let $xml := fn:doc($xmlname)
-let $encoded_xml := exi:serialize($xml, $options)
-return (fn:trace($exi, "orig exi"), 
-        fn:trace(xs:hexBinary($exi), "orig exi hex"),
-       fn:trace($encoded_xml, "encoded xml"),
-       fn:trace(xs:hexBinary($encoded_xml), "encoded xml hex"))
-:)

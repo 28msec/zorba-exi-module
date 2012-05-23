@@ -66,13 +66,12 @@ declare function exi:parse($exi as xs:base64Binary,
                            $options as element(exi-options:options)?) as node()*
 {
   let $validated-options :=
-  if(empty($options)) then
-    $options
-  else
-  if(schemaOptions:is-validated($options)) then
-    $options
-  else
-    validate{$options}
+    if(empty($options)) then
+      $options
+    else if(schemaOptions:is-validated($options)) then
+      $options
+    else
+      validate{$options}
   return
     exi:parse-internal($exi, $validated-options)
 };
@@ -112,19 +111,18 @@ declare %private function exi:parse-internal($exi as xs:base64Binary,
  : @example test_exi/Queries/converters/exi/serialize_parse4.xq
 :)
 declare function exi:serialize($xml as node()+,
-									             $options as element(exi-options:options)?) as xs:base64Binary
+  $options as element(exi-options:options)?) as xs:base64Binary
 {
   let $validated-options :=
-  if(empty($options)) then
-    $options
-  else
-  if(schemaOptions:is-validated($options)) then
-    $options
-  else
-    validate{$options}
+    if(empty($options)) then
+      $options
+    else if(schemaOptions:is-validated($options)) then
+      $options
+    else
+      validate{$options}
   return
     exi:serialize-internal($xml, $validated-options)
 };
-																		
+
 declare %private function exi:serialize-internal($xml as node()+,
-									$options as element(exi-options:options, exi-options:optionsType)?) as xs:base64Binary external;
+  $options as element(exi-options:options, exi-options:optionsType)?) as xs:base64Binary external;
