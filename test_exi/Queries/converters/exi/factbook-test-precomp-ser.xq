@@ -4,22 +4,28 @@ import module namespace file = "http://expath.org/ns/file";
 
 declare namespace exi-header = "http://www.w3.org/2009/exi";
 
+let $currdir := fn:resolve-uri("./")
+let $miscdir := fn:resolve-uri("./movesinstitute.org/Miscellaneous/")
 let $options:=
-<exi-options:options>
-  <exi-header:header>
-	<exi-header:lesscommon>
-	  <exi-header:uncommon>
-		<exi-header:alignment>
-			<exi-header:pre-compress/>
-		</exi-header:alignment>
-      </exi-header:uncommon>
-	</exi-header:lesscommon>
-	<exi-header:common>
-		<exi-header:schemaId>D:/zorba/code/zorba_modules/exi-module/test_exi/Queries/converters/exi/movesinstitute.org/Miscellaneous/factbook.xsd</exi-header:schemaId>
-	</exi-header:common>
-  </exi-header:header>
-</exi-options:options>
-let $exi_res := exi:serialize(fn:doc("D:/zorba/code/zorba_modules/exi-module/test_exi/Queries/converters/exi/movesinstitute.org/Miscellaneous/factbook.xml"), $options)
-(: let $fret1 := file:write-binary("factbook-test.exi", $exi_res) :)
-let $exi_exp := file:read-binary("D:/zorba/code/zorba_modules/exi-module/test_exi/Queries/converters/exi/factbook-precomp.exi")
-return if ($exi_res = $exi_exp) then "success" else "failure"
+  <exi-options:options>
+    <exi-header:header>
+      <exi-header:lesscommon>
+        <exi-header:uncommon>
+          <exi-header:alignment>
+            <exi-header:pre-compress/>
+          </exi-header:alignment>
+        </exi-header:uncommon>
+      </exi-header:lesscommon>
+      <exi-header:common>
+        <exi-header:schemaId>
+          { file:path-to-native(fn:resolve-uri("factbook.xsd", $miscdir)) }
+        </exi-header:schemaId>
+      </exi-header:common>
+    </exi-header:header>
+  </exi-options:options>
+let $factbook-xml := fn:resolve-uri("factbook.xml", $miscdir)
+let $exi_res := exi:serialize(fn:doc($factbook-xml), $options)
+let $foo := file:write-binary("foo.exi", $exi_res)
+let $exi_exp := file:read-binary(fn:resolve-uri("factbook-precomp.exi", $currdir))
+return
+  if ($exi_res = $exi_exp) then "success" else "failure"
